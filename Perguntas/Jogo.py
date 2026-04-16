@@ -1,7 +1,9 @@
 from Conectar_Banco import conectar_banco as minha_conexao
 from Perguntas import Perguntas
+from usuario import Usuario
 import mysql.connector
 import random
+
 lista_perguntas = []
 
 def iniciar_jogo():
@@ -17,6 +19,9 @@ def iniciar_jogo():
         lista_perguntas.append(perguntas_objeto)
 
     random.shuffle(lista_perguntas)
+
+    Usuario.login()
+    
 
     for pergunta in lista_perguntas:
         pergunta.exibir_pergunta()
