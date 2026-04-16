@@ -43,7 +43,7 @@ class Usuario:
         return Usuario(nome, turma)
 
 
-# Exemplo de uso
+
 print("=== Sistema de Login ===")
 print("1 - Login")
 print("2 - Cadastrar")
