@@ -7,7 +7,7 @@ import random
 lista_perguntas = []
 
 def iniciar_jogo():
-    score_atual = 0
+    
     conexao_ativa = minha_conexao()
     cursor = conexao_ativa.cursor(dictionary=True)
 
@@ -20,7 +20,8 @@ def iniciar_jogo():
 
     random.shuffle(lista_perguntas)
 
-    Usuario.login()
+    usuario_logado = Usuario.login()
+    score_atual = usuario_logado.pontos
     
 
     for pergunta in lista_perguntas:
@@ -32,11 +33,13 @@ def iniciar_jogo():
         
         if resposta.upper() == pergunta.correta:
             print(f"Você acertou e conseguiu {pergunta.pontos} ")
-            score_atual += pergunta.pontos
-        
+            usuario_logado.pontos += pergunta.pontos
+            codigo = ('UPDATE USUARIO SET Pontuacao = %s WHERE ID = %s')
+            cursor.execute(codigo, (usuario_logado.pontos, usuario_logado.id))
+            conexao_ativa.commit()
         else:
             print("Você errou!")
-        print(f"Sua pontuação atual: {score_atual} pontos!")   
+        print(f"Sua pontuação atual: {usuario_logado.pontos} pontos!")   
 
     cursor.close()
     conexao_ativa.close()     

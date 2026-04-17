@@ -11,6 +11,7 @@ class Usuario:
         self.id = data['ID']
         self.nome = data['Nome']
         self.turma = data['Turma']
+        self.pontos = data['Pontuacao']
     
   
     def verificar_logins(nome, turma):
@@ -34,9 +35,11 @@ class Usuario:
         
         if logins:
             print(f"Login Realizado com sucesso! Bem vindo, {nome}!")
-        
-        print("Usuário não encontrado.")
-        return None
+            return Usuario(logins)
+
+        else:
+            print("Usuário não encontrado.")
+            return None
     
     
     def cadastrar():
@@ -56,18 +59,20 @@ class Usuario:
         return Usuario(dados)
 
 
+if __name__ == "__main__":
+    print("=== Sistema de Login ===")
+    print("1 - Login")
+    print("2 - Cadastrar")
+    opcao = input("Escolha uma opção: ")
 
-print("=== Sistema de Login ===")
-print("1 - Login")
-print("2 - Cadastrar")
-opcao = input("Escolha uma opção: ")
 
-if opcao == "1":
-    usuario = Usuario.login()
-elif opcao == "2":
-    usuario = Usuario.cadastrar()
-else:
-    print("Opção inválida.")
+
+    if opcao == "1":
+        usuario = Usuario.login()
+    elif opcao == "2":
+        usuario = Usuario.cadastrar()
+    else:
+        print("Opção inválida.")
 
 
 
