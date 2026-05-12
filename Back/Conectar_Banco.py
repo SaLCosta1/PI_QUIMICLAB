@@ -1,18 +1,16 @@
 import mysql.connector
 from mysql.connector import Error
+
 def conectar_banco():
     try:
         conexao = mysql.connector.connect(
             host="localhost",
             user="root",
-            password = "tinCTrom",
-            database = "jogoetec"
+            password="SenhaPI@1234",
+            database="quimic_lab"
         )
-
         if conexao.is_connected():
-            print("Conexão realizada com suceso.")
             return conexao
     except Error as e:
-        print("Erro ao conectar com o Banco de Dados: ",e)
+        print("Erro ao conectar:", e)
         return None
-    
