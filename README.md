@@ -1,6 +1,7 @@
 ## Integrantes do Grupo
 
 * **Arthur Prates Lopes** - RA: 26.00770-8
+* **Daniel Moura Lourenço** - RA: 26.01090-0
 * **Eloa Luiza de Oliveira Teixeira** - RA: 26.00080-2
 * **Maria Eduarda Vasconcelos de Moraes** - RA: 26.01074-4
 * **Pedro Henrique dos Santos Pinto** - RA: 26.00889-6
