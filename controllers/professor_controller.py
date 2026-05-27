@@ -1,147 +1,65 @@
 # =========================================================
-# professor_controller.py
+# controllers/professor_controller.py
+# Popula relatórios de desempenho na área do professor.
 # =========================================================
-
-from PySide6.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView
+from PySide6.QtCore import Qt
+from services.jogo_service import buscar_desempenho_geral, buscar_desempenho_aluno
 
 
 class ProfessorController:
-
     def __init__(self, main):
         self.main = main
-        self.window = main.window
-        self.setup()
+        w = main.window
+        w.stack.currentChanged.connect(self._on_pagina_mudou)
 
-    def setup(self):
+    def _on_pagina_mudou(self, index: int):
+        w = self.main.window
+        pagina_atual = w.stack.widget(index)
 
-        w = self.window
+        if pagina_atual is w.pg_relatoriogeral:
+            self._popular_relatorio_geral()
+        elif pagina_atual is w.pg_relatorioindividual:
+            self._popular_relatorio_individual()
 
-        # =================================================
-        # ÁREA PROFESSOR
-        # =================================================
+    # --------------------------------------------------
+    def _popular_relatorio_geral(self):
+        w = self.main.window
+        dados = buscar_desempenho_geral()
+        tabela = getattr(w, "tbl_relatoriogeral", None)
+        if tabela is None or not dados:
+            return
 
-        w.btn_voltarloginprof.clicked.connect(
-            lambda: self.main.ir_para(w.pg_loginprof)
-        )
-        w.btn_editarperguntas.clicked.connect(
-            lambda: self.main.ir_para(w.pg_editarperguntas)
-        )
-        w.btn_relatoriogeral.clicked.connect(
-            lambda: self.main.ir_para(w.pg_ranking)
-        )
-        w.btn_ranking.clicked.connect(
-            lambda: self.main.ir_para(w.pg_ranking)
-        )
+        colunas = ["Nome", "Turma", "Nível", "Respostas", "Acertos", "Taxa %", "Tempo Médio"]
+        campos  = ["nome", "turma", "nivel", "total_respostas", "acertos", "taxa_acerto_pct", "tempo_medio_seg"]
+        self._preencher_tabela(tabela, dados, colunas, campos)
 
-        # =================================================
-        # PG_RANKING — tela intermediária
-        # =================================================
+    def _popular_relatorio_individual(self):
+        w = self.main.window
+        if not self.main.usuario_logado:
+            return
+        dados = buscar_desempenho_aluno(self.main.usuario_logado["id_usuario"])
+        tabela = getattr(w, "tbl_relatorioindividual", None)
+        if tabela is None or not dados:
+            return
 
-        # Seção ranking
-        w.btn_voltarareaprof2.clicked.connect(
-            lambda: self.main.ir_para(w.pg_areaprof)
-        )
-        w.btn_rankingalunos_2.clicked.connect(
-            lambda: self.main.ir_para(w.pg_rankinggeral)
-        )
-        w.btn_rankingturmas_2.clicked.connect(
-            lambda: self.main.ir_para(w.pg_rankingturmas)
-        )
+        colunas = ["Nível", "Respostas", "Acertos", "Erros", "Taxa %", "Tempo Médio"]
+        campos  = ["nivel", "total_respostas", "acertos", "erros", "taxa_acerto_pct", "tempo_medio_seg"]
+        self._preencher_tabela(tabela, dados, colunas, campos)
 
-        # Seção relatório
-        w.btn_voltarareaprof2_2.clicked.connect(
-            lambda: self.main.ir_para(w.pg_areaprof)
-        )
-        w.btn_relatorioalunos.clicked.connect(
-            lambda: self.main.ir_para(w.pg_relatoriogeral)
-        )
-        w.btn_relatorioturmas.clicked.connect(
-            lambda: self.main.ir_para(w.pg_relatorioturmas)
-        )
+    # --------------------------------------------------
+    @staticmethod
+    def _preencher_tabela(tabela: QTableWidget, dados: list[dict],
+                          colunas: list[str], campos: list[str]):
+        tabela.setRowCount(len(dados))
+        tabela.setColumnCount(len(colunas))
+        tabela.setHorizontalHeaderLabels(colunas)
+        tabela.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        tabela.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
-        # =================================================
-        # EDITAR PERGUNTAS
-        # =================================================
-
-        w.btn_voltarareaprof.clicked.connect(
-            lambda: self.main.ir_para(w.pg_areaprof)
-        )
-        w.btn_editarpergunta.clicked.connect(
-            lambda: self.main.ir_para(w.pg_editarpergunta_detalhe)
-        )
-        w.btn_adicionarpergunta.clicked.connect(
-            lambda: self.main.ir_para(w.pg_questao_adicionar)
-        )
-
-        # =================================================
-        # EDITAR PERGUNTA DETALHE
-        # =================================================
-
-        w.btn_voltarpararanking_4.clicked.connect(
-            lambda: self.main.ir_para(w.pg_editarperguntas)
-        )
-
-        # =================================================
-        # QUESTÃO EDIÇÃO
-        # =================================================
-
-        w.btn_voltareditarperguntas.clicked.connect(
-            lambda: self.main.ir_para(w.pg_editarperguntas)
-        )
-
-        # =================================================
-        # QUESTÃO ADIÇÃO
-        # =================================================
-
-        w.btn_voltareditarperguntas_2.clicked.connect(
-            lambda: self.main.ir_para(w.pg_editarperguntas)
-        )
-
-        # =================================================
-        # RANKING GERAL
-        # =================================================
-
-        w.btn_voltarpararanking2.clicked.connect(
-            lambda: self.main.ir_para(w.pg_ranking)
-        )
-
-        # =================================================
-        # RANKING TURMAS
-        # =================================================
-
-        w.btn_voltarpararanking2_3.clicked.connect(
-            lambda: self.main.ir_para(w.pg_ranking)
-        )
-
-        # =================================================
-        # RELATÓRIO INDIVIDUAL
-        # =================================================
-
-        w.btn_voltarpararanking_5.clicked.connect(
-            lambda: self.main.ir_para(w.pg_ranking)
-        )
-
-        # =================================================
-        # RELATÓRIO GERAL
-        # =================================================
-
-        w.btn_voltarpararanking_2.clicked.connect(
-            lambda: self.main.ir_para(w.pg_ranking)
-        )
-        w.btn_verificar.clicked.connect(
-            lambda: self.main.ir_para(w.pg_relatorioindividual)
-        )
-
-        # =================================================
-        # RELATÓRIO TURMAS
-        # =================================================
-
-        w.btn_voltarpararanking.clicked.connect(
-            lambda: self.main.ir_para(w.pg_ranking)
-        )
-
-    # =====================================================
-    # FILTRO RELATÓRIO
-    # =====================================================
-
-    
+        for row, item in enumerate(dados):
+            for col, campo in enumerate(campos):
+                valor = str(item.get(campo, ""))
+                cell = QTableWidgetItem(valor)
+                cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                tabela.setItem(row, col, cell)
