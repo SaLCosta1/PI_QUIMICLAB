@@ -14,9 +14,16 @@ def carregar_perguntas(dificuldade):
     conexao, cursor = _get_conn_cursor()
     try:
         if dificuldade in ["1", "2", "3"]:
-            cursor.execute("SELECT * FROM pergunta WHERE id_nivel = %s AND ativa = 1", (dificuldade,))
+            cursor.execute(
+                "SELECT * FROM pergunta WHERE id_nivel = %s AND ativa = 1",
+                (int(dificuldade),),
+            )
+        elif dificuldade == "4":
+            cursor.execute("SELECT * FROM pergunta WHERE ativa = 1 ORDER BY RAND()")
+        elif dificuldade == "5":
+            cursor.execute("SELECT * FROM pergunta WHERE ativa = 1 ORDER BY RAND() LIMIT 30")
         else:
-            cursor.execute("SELECT * FROM pergunta WHERE ativa = 1 ORDER BY id_nivel ASC")
+            cursor.execute("SELECT * FROM pergunta WHERE ativa = 1")
 
         linhas = cursor.fetchall()
 
@@ -24,24 +31,81 @@ def carregar_perguntas(dificuldade):
             linhas = linhas[:30]
 
         lista = []
-        for i in range(len(linhas)):
-            cursor.execute("SELECT * FROM alternativa WHERE id_pergunta = %s", (linhas[i]['id_pergunta'],))
+        for linha in linhas:
+            cursor.execute(
+                "SELECT * FROM alternativa WHERE id_pergunta = %s ORDER BY id_alternativa",
+                (linha["id_pergunta"],),
+            )
             alternativas = cursor.fetchall()
-            cursor.execute("SELECT * FROM dica WHERE id_pergunta = %s", (linhas[i]['id_pergunta'],))
+            if not alternativas:
+                continue
+            cursor.execute(
+                "SELECT * FROM dica WHERE id_pergunta = %s",
+                (linha["id_pergunta"],),
+            )
             dicas = cursor.fetchall()
-            lista.append(Pergunta(linhas[i], alternativas, dicas))
+            lista.append(Pergunta(linha, alternativas, dicas))
+
+        if dificuldade != "5":
+            random.shuffle(lista)
 
         return lista
     finally:
         cursor.close()
         conexao.close()
 
-def registrar_resposta(id_sessao, pergunta, alternativa_escolhida, correta, tempo_seg):
+
+def criar_sessao(id_usuario, id_nivel, modo="tradicional"):
     conexao, cursor = _get_conn_cursor()
     try:
         cursor.execute(
+            "INSERT INTO sessao_jogo (id_usuario, id_nivel, modo) VALUES (%s, %s, %s)",
+            (id_usuario, id_nivel, modo),
+        )
+        conexao.commit()
+        return cursor.lastrowid
+    finally:
+        cursor.close()
+        conexao.close()
+
+
+def finalizar_sessao(id_sessao, pontuacao):
+    conexao, cursor = _get_conn_cursor()
+    try:
+        cursor.execute(
+            "UPDATE sessao_jogo SET pontuacao = %s, concluida = 1, finalizado_em = NOW() WHERE id_sessao = %s",
+            (pontuacao, id_sessao),
+        )
+        conexao.commit()
+    finally:
+        cursor.close()
+        conexao.close()
+
+
+def registrar_uso_dica(id_sessao, id_pergunta, id_dica):
+    if not id_sessao or not id_dica:
+        return
+    conexao, cursor = _get_conn_cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO uso_dica (id_sessao, id_pergunta, id_dica) VALUES (%s, %s, %s)",
+            (id_sessao, id_pergunta, id_dica),
+        )
+        conexao.commit()
+    finally:
+        cursor.close()
+        conexao.close()
+
+
+def registrar_resposta(id_sessao, pergunta, alternativa_escolhida, correta, tempo_seg):
+    if not id_sessao:
+        return
+    conexao, cursor = _get_conn_cursor()
+    try:
+        id_alt = alternativa_escolhida["id_alternativa"]
+        cursor.execute(
             "INSERT INTO resposta (id_sessao, id_pergunta, id_alternativa_escolhida, correta, tempo_resposta_seg) VALUES (%s, %s, %s, %s, %s)",
-            (id_sessao, pergunta.id_pergunta, alternativa_escolhida['id_alternativa'], correta, tempo_seg)
+            (id_sessao, pergunta.id_pergunta, id_alt, int(correta), tempo_seg),
         )
         conexao.commit()
     finally:

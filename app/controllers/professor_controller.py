@@ -33,7 +33,7 @@ from app.utils.helpers import (
     criar_item_tabela,
 )
 
-from app.services.pergunta_service import criar_pergunta
+from app.services.pergunta_service import criar_pergunta, listar_perguntas, atualizar_pergunta, deletar_pergunta, obter_pergunta
 
 
 class ProfessorController:
@@ -381,6 +381,14 @@ class ProfessorController:
         # Limpa lista de perguntas
         w.lista_alunos3_2.clear()
 
+        # Carrega perguntas do banco
+        perguntas = listar_perguntas()
+        for pergunta in perguntas:
+            item_text = f"[{pergunta['nome_nivel']}] {pergunta['enunciado']}"
+            item = QListWidgetItem(item_text)
+            item.setData(Qt.UserRole, pergunta['id_pergunta'])
+            w.lista_alunos3_2.addItem(item)
+
         # Esconde botões de exclusão
         self._esconder_botoes_exclusao()
 
@@ -411,26 +419,113 @@ class ProfessorController:
         self.main.ir_para(self.main.window.pg_rankinggeral)
 
     def _abrir_edicao(self):
+        """
+        Abre a tela de edição carregando os dados da pergunta selecionada.
+        """
+        if not hasattr(self, '_pergunta_id') or not self._pergunta_id:
+            QMessageBox.warning(self.main.window, 'Erro', 'Nenhuma pergunta selecionada.')
+            return
+        
+        # Buscar dados completos da pergunta
+        pergunta_dados = obter_pergunta(self._pergunta_id)
+        if not pergunta_dados:
+            QMessageBox.warning(self.main.window, 'Erro', 'Pergunta não encontrada.')
+            return
+        
+        # Preencher campos de edição
+        self.main.editor_controller.preencher_edicao(pergunta_dados)
+        
+        # Navegar para tela de edição
         self.main.ir_para(self.main.window.pg_questao_edicao)
 
     def _abrir_adicionar(self):
+        """
+        Abre a tela de adição de pergunta com campos limpos.
+        """
+        # Limpar campos
+        self.main.editor_controller.limpar_campos_adicao()
+        
         self.main.ir_para(self.main.window.pg_questao_adicionar)
 
     def _confirmar_exclusao(self):
-        self.main.ir_para(self.main.window.pg_editarperguntas)
+        """
+        Mostra botões de confirmação quando professor clica em excluir.
+        """
+        w = self.main.window
+        
+        # Esconder botões de ação
+        if hasattr(w, 'btn_editar'):
+            w.btn_editar.setVisible(False)
+        if hasattr(w, 'btn_excluir'):
+            w.btn_excluir.setVisible(False)
+        
+        # Mostrar botões de confirmação
+        if hasattr(w, 'btn_confirmar_exclusao'):
+            w.btn_confirmar_exclusao.setVisible(True)
+        if hasattr(w, 'btn_negar_exclusao'):
+            w.btn_negar_exclusao.setVisible(True)
 
     def _cancelar_exclusao(self):
-        self.main.ir_para(self.main.window.pg_editarperguntas)
+        """
+        Cancela exclusão e volta aos botões de ação normais.
+        """
+        w = self.main.window
+        
+        # Mostrar botões de ação
+        if hasattr(w, 'btn_editar'):
+            w.btn_editar.setVisible(True)
+        if hasattr(w, 'btn_excluir'):
+            w.btn_excluir.setVisible(True)
+        
+        # Esconder botões de confirmação
+        if hasattr(w, 'btn_confirmar_exclusao'):
+            w.btn_confirmar_exclusao.setVisible(False)
+        if hasattr(w, 'btn_negar_exclusao'):
+            w.btn_negar_exclusao.setVisible(False)
 
     def _excluir_pergunta(self):
         """
         Executa a exclusão da pergunta selecionada.
-        Atualmente é um stub que apenas retorna à lista.
         """
-        # Implementação futura: chamar backend para remover a pergunta.
+        if not hasattr(self, '_pergunta_id') or not self._pergunta_id:
+            QMessageBox.warning(self.main.window, 'Erro', 'Nenhuma pergunta selecionada.')
+            return
+        
+        ok, erro = deletar_pergunta(self._pergunta_id)
+        if not ok:
+            QMessageBox.warning(self.main.window, 'Erro', f'Falha ao excluir pergunta: {erro}')
+            return
+
+        QMessageBox.information(self.main.window, 'Sucesso', 'Pergunta excluída com sucesso.')
         self.main.ir_para(self.main.window.pg_editarperguntas)
 
     def _confirmar_edicao(self):
+        """
+        Salva as alterações da pergunta editada.
+        """
+        if not hasattr(self, '_pergunta_id') or not self._pergunta_id:
+            QMessageBox.warning(self.main.window, 'Erro', 'Nenhuma pergunta selecionada.')
+            return
+        
+        # Coleta dados do editor e tenta salvar no banco
+        dados = None
+        try:
+            dados = self.main.editor_controller.coletar_edicao()
+        except Exception as e:
+            QMessageBox.warning(self.main.window, 'Erro', f'Erro ao coletar dados: {str(e)}')
+            return
+
+        if not dados:
+            # fallback: apenas navega de volta
+            self.main.ir_para(self.main.window.pg_editarpergunta_detalhe)
+            return
+
+        ok, erro = atualizar_pergunta(self._pergunta_id, dados)
+        if not ok:
+            QMessageBox.warning(self.main.window, 'Erro', f'Falha ao atualizar pergunta: {erro}')
+            return
+
+        QMessageBox.information(self.main.window, 'Sucesso', 'Pergunta atualizada com sucesso.')
         self.main.ir_para(self.main.window.pg_editarpergunta_detalhe)
 
     def _confirmar_adicao(self):
@@ -457,7 +552,14 @@ class ProfessorController:
         self.main.ir_para(self.main.window.pg_editarperguntas)
 
     def _selecionar_pergunta(self, item):
+        """
+        Armazena a pergunta selecionada (ID e texto) e mostra os botões de ação.
+        """
         self._pergunta_selecionada = item.text()
+        self._pergunta_id = item.data(Qt.UserRole)  # Armazenar ID para edição/exclusão
+        
+        # Mostra botões de edição e exclusão quando pergunta é selecionada
+        self._mostrar_botoes_acao()
 
     def _adicionar_coluna(self, tabela):
         if tabela is None:
@@ -480,18 +582,75 @@ class ProfessorController:
         tabela.removeRow(tabela.rowCount() - 1)
 
     def _esconder_botoes_exclusao(self):
-        # Placeholder: nada específico a fazer no momento.
-        return
+        """
+        Esconde os botões de editar e excluir pergunta por padrão.
+        Eles só aparecem quando uma pergunta é selecionada.
+        """
+        w = self.main.window
+        
+        # Esconder botões de ação
+        if hasattr(w, 'btn_editar'):
+            w.btn_editar.setVisible(False)
+        if hasattr(w, 'btn_excluir'):
+            w.btn_excluir.setVisible(False)
+        
+        # Esconder botões de confirmação de exclusão
+        if hasattr(w, 'btn_confirmar_exclusao'):
+            w.btn_confirmar_exclusao.setVisible(False)
+        if hasattr(w, 'btn_negar_exclusao'):
+            w.btn_negar_exclusao.setVisible(False)
+
+    def _mostrar_botoes_acao(self):
+        """
+        Mostra os botões de editar e excluir quando uma pergunta é selecionada.
+        """
+        w = self.main.window
+        
+        # Mostrar botões de ação
+        if hasattr(w, 'btn_editar'):
+            w.btn_editar.setVisible(True)
+        if hasattr(w, 'btn_excluir'):
+            w.btn_excluir.setVisible(True)
+        
+        # Esconder botões de confirmação (aparecem só quando confirmar exclusão)
+        if hasattr(w, 'btn_confirmar_exclusao'):
+            w.btn_confirmar_exclusao.setVisible(False)
+        if hasattr(w, 'btn_negar_exclusao'):
+            w.btn_negar_exclusao.setVisible(False)
 
     def _filtrar_detalhe(self):
         """
-        Método reservado para futura integração
-        com backend.
-
-        Será responsável por filtrar perguntas
-        conforme a dificuldade selecionada.
+        Filtra as perguntas conforme a dificuldade selecionada.
         """
-        pass
+        w = self.main.window
+        
+        # Obter filtro selecionado
+        filtro = w.comboBox_turma3_2.currentText()
+        
+        # Mapear nome para id_nivel
+        filtro_map = {
+            "Todas": None,
+            "Fácil": 1,
+            "Médio": 2,
+            "Difícil": 3
+        }
+        
+        id_nivel = filtro_map.get(filtro)
+        
+        # Limpar lista
+        w.lista_alunos3_2.clear()
+        
+        # Carregar perguntas com filtro
+        perguntas = listar_perguntas(id_nivel)
+        
+        for pergunta in perguntas:
+            item_text = f"[{pergunta['nome_nivel']}] {pergunta['enunciado']}"
+            item = QListWidgetItem(item_text)
+            item.setData(Qt.UserRole, pergunta['id_pergunta'])
+            w.lista_alunos3_2.addItem(item)
+        
+        # Esconde botões quando filtro é mudado
+        self._esconder_botoes_exclusao()
 
     def _filtrar_relatorio_geral(self):
         """Stub: filtrar relatório geral (futuro backend)."""

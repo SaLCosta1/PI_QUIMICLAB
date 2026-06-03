@@ -32,10 +32,13 @@ from app.services.jogo_service import (
     carregar_perguntas,
     criar_sessao,
     registrar_resposta,
+    registrar_uso_dica,
     finalizar_sessao,
     atualizar_ranking,
     NIVEL,
+    NIVEL_NOME,
 )
+from app.utils.imagem_util import pixmap_de_blob, aplicar_pixmap_no_label
 
 
 # =========================================================
@@ -320,15 +323,26 @@ class QuestionController:
         self._id_nivel = NIVEL.get(dificuldade, 1)
         self._sessao_id = None
 
-        self._perguntas = carregar_perguntas(dificuldade)
+        try:
+            self._perguntas = carregar_perguntas(dificuldade)
+        except Exception as exc:
+            print(f"[QuestionController] Erro ao carregar perguntas: {exc}")
+            self._perguntas = []
+
         if not self._perguntas:
-            self._aviso("Não foi possível carregar as perguntas. Tente novamente.")
+            nivel_txt = NIVEL_NOME.get(self._id_nivel, dificuldade)
+            self._aviso(
+                f"Nenhuma pergunta encontrada no nível {nivel_txt}.\n\n"
+                "Verifique se o MySQL está rodando, se o banco foi criado "
+                "(Back/codigo.sql) e se o professor cadastrou questões neste nível."
+            )
             return
 
         if self.main.usuario_logado and self.main.usuario_logado.get("id_usuario"):
             self._sessao_id = criar_sessao(
                 self.main.usuario_logado["id_usuario"],
                 self._id_nivel,
+                self._modo,
             )
 
         self._mostrar_pergunta()
@@ -393,11 +407,18 @@ class QuestionController:
         w = self.main.window
 
         pergunta = self._perguntas[self._indice]
+        self._eliminadas = []
+        self._dica_visivel = False
+        self._ajuda_usada = False
+
         w.lbl_pergunta.setText(pergunta.enunciado)
-        w.lbl_infonivel.setText(f"Nível {pergunta.id_nivel}")
+        nome_nivel = NIVEL_NOME.get(pergunta.id_nivel, str(pergunta.id_nivel))
+        w.lbl_infonivel.setText(f"Nível {nome_nivel}")
+
+        self._exibir_imagem_pergunta(pergunta)
 
         alternativas = pergunta.alternativas
-        textos = [a["texto"] if isinstance(a, dict) else a.texto for a in alternativas]
+        textos = [a.get("texto", "") if isinstance(a, dict) else getattr(a, "texto", "") for a in alternativas]
 
         w.btn_altA.setText(textos[0] if len(textos) > 0 else "")
         w.btn_altB.setText(textos[1] if len(textos) > 1 else "")
@@ -415,15 +436,24 @@ class QuestionController:
 
         w.btn_dicaexp.show()
         w.btn_eliminar.show()
+        w.txt_dica.hide()
+        w.txt_dica.clear()
 
+        self._timer.stop()
         self._tempo_restante = TEMPO_POR_QUESTAO
         w.lbl_timer.setText(str(self._tempo_restante))
         self._timer.start(1000)
 
-        if self._dica_visivel:
-            w.txt_dica.show()
-        else:
-            w.txt_dica.hide()
+        self.main.ir_para(w.pg_questao)
+
+    def _exibir_imagem_pergunta(self, pergunta):
+        """Exibe imagem BLOB no lbl_imagem ou esconde o label."""
+        w = self.main.window
+        if not hasattr(w, "lbl_imagem"):
+            return
+        imagem = getattr(pergunta, "imagem", None)
+        pix = pixmap_de_blob(imagem)
+        aplicar_pixmap_no_label(w.lbl_imagem, pix)
 
     def _tick_timer(self):
         self._tempo_restante -= 1
@@ -448,7 +478,12 @@ class QuestionController:
             self._aviso("Selecione uma alternativa válida.")
             return
 
-        correta = alternativa["correta"] == 1 if isinstance(alternativa, dict) else alternativa.correta
+        if isinstance(alternativa, dict):
+            correta = alternativa.get("correta") in (1, True)
+        else:
+            correta = alternativa.correta in (1, True)
+
+        self._timer.stop()
         registrar_resposta(
             self._sessao_id,
             pergunta,
@@ -486,10 +521,11 @@ class QuestionController:
 
         self._dica_visivel = True
         w = self.main.window
-        w.txt_dica.setText(dica.conteudo if hasattr(dica, "conteudo") else dica["conteudo"])
+        texto_dica = dica["conteudo"] if isinstance(dica, dict) else dica.conteudo
+        w.txt_dica.setText(texto_dica)
         w.txt_dica.show()
         self._ajuda_usada = True
-        registrar_uso_dica(self._sessao_id, pergunta, dica if isinstance(dica, dict) else {"id_dica": dica.id_dica})
+        registrar_uso_dica(self._sessao_id, pergunta, dica)
 
     def _eliminar_alternativa(self):
         if not self._perguntas:
@@ -512,17 +548,29 @@ class QuestionController:
         self._ajuda_usada = True
 
     def _finalizar_partida(self):
+        self._timer.stop()
+
         if self._sessao_id is not None:
             finalizar_sessao(self._sessao_id, self._pontuacao)
 
-        if self.main.usuario_logado and self.main.usuario_logado.get("id_usuario"):
+        if (
+            self._modo == "desafio"
+            and self.main.usuario_logado
+            and self.main.usuario_logado.get("id_usuario")
+        ):
             atualizar_ranking(
                 self.main.usuario_logado["id_usuario"],
                 self._id_nivel,
                 self._pontuacao,
             )
 
-        self._info(f"Fim do jogo! Pontuação final: {self._pontuacao}")
+        total = len(self._perguntas)
+        self._info(
+            f"Fim do jogo!\n"
+            f"Acertos: {self._acertos}/{total}\n"
+            f"Pontuação: {self._pontuacao}"
+        )
+        self.main.ir_para(self.main.window.pg_modos)
 
     def _ir_gabarito(self):
         self.main.ir_para(self.main.window.pg_feedbacktradicional if self._modo == "tradicional" else self.main.window.pg_feedbackdesafio)

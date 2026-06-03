@@ -46,7 +46,7 @@ class Usuario:
         if not email_valido(email):
             return None, "E-mail inválido. Use nome.sobrenome@aluno.cps.gov.br"
 
-        # Usa senha fornecida pelo frontend; se não informar, usa senha padrão.
+ 
         senha_a_usar = senha if senha else senha_padrao
 
         conexao, cursor = _get_conn_cursor()
@@ -59,7 +59,7 @@ class Usuario:
                 (nome, email, senha_a_usar, turma)
             )
             conexao.commit()
-            # buscar novo usuário
+
             cursor.execute("SELECT * FROM usuario WHERE email = %s AND senha_hash = %s", (email, senha_a_usar))
             dados = cursor.fetchone()
             if not dados:

@@ -21,6 +21,10 @@
 # edição dinâmica diretamente pela interface.
 # =========================================================
 
+import base64
+import mimetypes
+from pathlib import Path
+
 from PySide6.QtWidgets import (
     QLineEdit,
     QFileDialog,
@@ -47,6 +51,16 @@ class EditorController:
 
         self.main = main
         self.window = main.window
+        
+        # Armazenar imagens em base64 + MIME (BLOB no banco)
+        self._imagem_base64_2 = None
+        self._imagem_mime_2 = None
+        self._imagem_base64_3 = None
+        self._imagem_mime_3 = None
+        
+        # Armazenar qual alternativa é correta (A, B, C ou D)
+        self._alt_correta_2 = "A"  # Padrão: alternativa A
+        self._alt_correta_3 = "A"  # Padrão: alternativa A
 
         self.setup()
 
@@ -452,6 +466,62 @@ class EditorController:
         )
 
         lbl_imagem.show()
+        
+        # =================================================
+        # CONVERTE IMAGEM PARA BASE64
+        # =================================================
+        # Salva a imagem em base64 para ser enviada ao banco
+        
+        try:
+            with open(caminho, 'rb') as f:
+                imagem_bytes = f.read()
+                imagem_base64 = base64.b64encode(imagem_bytes).decode('utf-8')
+            imagem_mime, _ = mimetypes.guess_type(caminho)
+            if not imagem_mime:
+                imagem_mime = "image/png"
+
+            if hasattr(lbl_imagem, 'objectName') and '_2' in lbl_imagem.objectName():
+                self._imagem_base64_2 = imagem_base64
+                self._imagem_mime_2 = imagem_mime
+            else:
+                self._imagem_base64_3 = imagem_base64
+                self._imagem_mime_3 = imagem_mime
+        except Exception as e:
+            print(f"Erro ao converter imagem para base64: {e}")
+    
+    def _carregar_imagem_base64(self, imagem_base64, sufixo):
+        """
+        Carrega uma imagem em base64 e exibe no label correspondente.
+        
+        imagem_base64: string com imagem codificada em base64
+        sufixo: "_2" para edição ou "_3" para adição
+        """
+        try:
+            # Decodificar base64 para bytes
+            imagem_bytes = base64.b64decode(imagem_base64)
+            
+            # Converter bytes para QPixmap
+            pix = QPixmap()
+            pix.loadFromData(imagem_bytes)
+            
+            # Encontrar o label correspondente
+            if sufixo == '_2':
+                lbl_imagem = self.window.lbl_imagem_2
+            else:
+                lbl_imagem = self.window.lbl_imagem_3
+            
+            # Exibir a imagem redimensionada
+            lbl_imagem.setPixmap(
+                pix.scaled(
+                    lbl_imagem.width(),
+                    lbl_imagem.height(),
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            )
+            lbl_imagem.show()
+        except Exception as e:
+            print(f"Erro ao carregar imagem base64: {e}")
 
     # =====================================================
     # COLETAR DADOS DA EDIÇÃO
@@ -478,6 +548,11 @@ class EditorController:
             "altC": self._altC_2.text(),
 
             "altD": self._altD_2.text(),
+            
+            "alt_correta": self._alt_correta_2,
+            
+            "imagem_base64": self._imagem_base64_2,
+            "imagem_mime": self._imagem_mime_2,
         }
 
     # =====================================================
@@ -505,4 +580,172 @@ class EditorController:
             "altC": self._altC_3.text(),
 
             "altD": self._altD_3.text(),
+            
+            "alt_correta": self._alt_correta_3,
+            
+            "imagem_base64": self._imagem_base64_3,
+            "imagem_mime": self._imagem_mime_3,
         }
+
+    def preencher_edicao(self, pergunta_dados):
+        """
+        Preenche os campos de edição com os dados da pergunta.
+        
+        pergunta_dados: dict com id_pergunta, enunciado, id_nivel, alternativas, dicas
+        """
+        if not pergunta_dados:
+            return
+        
+        # Preencher enunciado
+        self._pergunta_2.setText(pergunta_dados.get('enunciado', ''))
+        
+        # Preencher nível
+        nivel_map = {1: 'Fácil', 2: 'Médio', 3: 'Difícil'}
+        nivel_nome = nivel_map.get(pergunta_dados.get('id_nivel'), '')
+        self._nivel_2.setText(nivel_nome)
+        
+        # Preencher alternativas
+        alternativas = pergunta_dados.get('alternativas', [])
+        letras = ['A', 'B', 'C', 'D']
+        for i, alt in enumerate(alternativas):
+            texto = alt.get('texto', '')
+            correta = alt.get('correta', 0)
+            if i == 0:
+                self._altA_2.setText(texto)
+            elif i == 1:
+                self._altB_2.setText(texto)
+            elif i == 2:
+                self._altC_2.setText(texto)
+            elif i == 3:
+                self._altD_2.setText(texto)
+            
+            # Marcar qual alternativa é correta
+            if correta in (1, True):
+                self._alt_correta_2 = letras[i]
+        
+        # Preencher dica
+        dicas = pergunta_dados.get('dicas', [])
+        if dicas:
+            # Buscar dica de texto (primeira dica textual encontrada)
+            dica_texto = next((d for d in dicas if d.get('tipo') == 'texto'), None)
+            if dica_texto:
+                self._dica_2.setText(dica_texto.get('conteudo', ''))
+            else:
+                self._dica_2.setText('')
+        else:
+            self._dica_2.setText('')
+        
+        # Preencher imagem
+        imagem_base64 = pergunta_dados.get('imagem_base64')
+        if imagem_base64:
+            self._imagem_base64_2 = imagem_base64
+            self._imagem_mime_2 = pergunta_dados.get('imagem_mime')
+            self._carregar_imagem_base64(imagem_base64, '_2')
+        else:
+            self._imagem_base64_2 = None
+            self._imagem_mime_2 = None
+        
+        # Atualizar visual das alternativas (destacar a correta)
+        self._atualizar_visual_alt_correta_edicao()
+    
+    def limpar_campos_adicao(self):
+        """
+        Limpa todos os campos da tela de adição de pergunta.
+        """
+        self._pergunta_3.setText('')
+        self._nivel_3.setText('')
+        self._dica_3.setText('')
+        self._altA_3.setText('')
+        self._altB_3.setText('')
+        self._altC_3.setText('')
+        self._altD_3.setText('')
+        self._imagem_base64_3 = None
+        self._imagem_mime_3 = None
+        
+        # Resetar imagem visual
+        if hasattr(self.window, 'lbl_imagem_3'):
+            self.window.lbl_imagem_3.setPixmap(QPixmap())
+    
+    # =====================================================
+    # MARCAR ALTERNATIVA CORRETA
+    # =====================================================
+    
+    def _marcar_alt_correta_edicao(self, letra):
+        """Marca uma alternativa como correta na tela de edição."""
+        self._alt_correta_2 = letra
+        self._atualizar_visual_alt_correta_edicao()
+    
+    def _marcar_alt_correta_adicao(self, letra):
+        """Marca uma alternativa como correta na tela de adição."""
+        self._alt_correta_3 = letra
+        self._atualizar_visual_alt_correta_adicao()
+    
+    def _atualizar_visual_alt_correta_edicao(self):
+        """Atualiza visual dos botões de alternativa (edição)."""
+        style_normal = """
+            QLineEdit {
+                background-color: white;
+                border: 2px solid #921913;
+                border-radius: 10px;
+                padding: 6px 10px;
+                font-size: 20px;
+                color: #1a1a1a;
+            }
+        """
+        style_correta = """
+            QLineEdit {
+                background-color: #90EE90;
+                border: 3px solid #228B22;
+                border-radius: 10px;
+                padding: 6px 10px;
+                font-size: 20px;
+                color: #1a1a1a;
+                font-weight: bold;
+            }
+        """
+        
+        for edit, letra in [
+            (self._altA_2, "A"),
+            (self._altB_2, "B"),
+            (self._altC_2, "C"),
+            (self._altD_2, "D"),
+        ]:
+            if letra == self._alt_correta_2:
+                edit.setStyleSheet(style_correta)
+            else:
+                edit.setStyleSheet(style_normal)
+    
+    def _atualizar_visual_alt_correta_adicao(self):
+        """Atualiza visual dos botões de alternativa (adição)."""
+        style_normal = """
+            QLineEdit {
+                background-color: white;
+                border: 2px solid #921913;
+                border-radius: 10px;
+                padding: 6px 10px;
+                font-size: 20px;
+                color: #1a1a1a;
+            }
+        """
+        style_correta = """
+            QLineEdit {
+                background-color: #90EE90;
+                border: 3px solid #228B22;
+                border-radius: 10px;
+                padding: 6px 10px;
+                font-size: 20px;
+                color: #1a1a1a;
+                font-weight: bold;
+            }
+        """
+        
+        for edit, letra in [
+            (self._altA_3, "A"),
+            (self._altB_3, "B"),
+            (self._altC_3, "C"),
+            (self._altD_3, "D"),
+        ]:
+            if letra == self._alt_correta_3:
+                edit.setStyleSheet(style_correta)
+            else:
+                edit.setStyleSheet(style_normal)
