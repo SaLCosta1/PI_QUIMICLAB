@@ -120,7 +120,6 @@ O sistema foi desenvolvido como projeto integrador para a **ETEC Júlio de Mesqu
 
 ```
 PySide6>=6.6,<7.0      # Framework Qt para Python
-python-dotenv          # Carregamento de variáveis de ambiente
 mysql-connector-python # Conector para MySQL
 ```
 
