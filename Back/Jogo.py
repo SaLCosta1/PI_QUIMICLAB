@@ -50,6 +50,9 @@ def carregar_perguntas(dificuldade):
             random.shuffle(lista)
 
         return lista
+    except Exception as e:
+        print(f"[Jogo.carregar_perguntas] Erro ao carregar perguntas (dificuldade={dificuldade}): {e}")
+        return []
     finally:
         cursor.close()
         conexao.close()
@@ -64,6 +67,9 @@ def criar_sessao(id_usuario, id_nivel, modo="tradicional"):
         )
         conexao.commit()
         return cursor.lastrowid
+    except Exception as e:
+        print(f"[Jogo.criar_sessao] Erro ao criar sessão: {e}")
+        return None
     finally:
         cursor.close()
         conexao.close()
@@ -77,6 +83,8 @@ def finalizar_sessao(id_sessao, pontuacao):
             (pontuacao, id_sessao),
         )
         conexao.commit()
+    except Exception as e:
+        print(f"[Jogo.finalizar_sessao] Erro ao finalizar sessão: {e}")
     finally:
         cursor.close()
         conexao.close()
@@ -92,6 +100,8 @@ def registrar_uso_dica(id_sessao, id_pergunta, id_dica):
             (id_sessao, id_pergunta, id_dica),
         )
         conexao.commit()
+    except Exception as e:
+        print(f"[Jogo.registrar_uso_dica] Erro ao registrar uso de dica: {e}")
     finally:
         cursor.close()
         conexao.close()
@@ -108,6 +118,8 @@ def registrar_resposta(id_sessao, pergunta, alternativa_escolhida, correta, temp
             (id_sessao, pergunta.id_pergunta, id_alt, int(correta), tempo_seg),
         )
         conexao.commit()
+    except Exception as e:
+        print(f"[Jogo.registrar_resposta] Erro ao registrar resposta: {e}")
     finally:
         cursor.close()
         conexao.close()
@@ -130,6 +142,8 @@ def atualizar_ranking(id_usuario, id_nivel, pontuacao):
                 (id_usuario, id_nivel, pontuacao)
             )
         conexao.commit()
+    except Exception as e:
+        print(f"[Jogo.atualizar_ranking] Erro ao atualizar ranking: {e}")
     finally:
         cursor.close()
         conexao.close()
@@ -145,6 +159,8 @@ def exibir_ranking(id_nivel):
         print("\nRanking")
         for i in range(len(dados)):
             print(f"{i+1}. {dados[i]['nome']:<25} {dados[i]['melhor_pontuacao']} pts")
+    except Exception as e:
+        print(f"[Jogo.exibir_ranking] Erro ao exibir ranking: {e}")
     finally:
         cursor.close()
         conexao.close()

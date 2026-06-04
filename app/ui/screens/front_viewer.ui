@@ -39,7 +39,7 @@ QScrollBar::handle:vertical {
 }</string>
     </property>
     <property name="currentIndex">
-     <number>17</number>
+     <number>23</number>
     </property>
     <widget class="QWidget" name="pg_inicio">
      <widget class="QWidget" name="fundo_inicio" native="true">
@@ -5067,43 +5067,6 @@ padding: 0 18px</string>
           <bool>true</bool>
          </property>
         </widget>
-        <widget class="QLabel" name="lbl_gabarito_alt4_2">
-         <property name="geometry">
-          <rect>
-           <x>30</x>
-           <y>380</y>
-           <width>681</width>
-           <height>90</height>
-          </rect>
-         </property>
-         <property name="font">
-          <font>
-           <family>Arbutus Slab</family>
-           <pointsize>20</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="cursor">
-          <cursorShape>ArrowCursor</cursorShape>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">background-color: #921913;
-border: 2px solid #921913;
-border-radius: 25px;
-color: white;
-padding: 0 18px</string>
-         </property>
-         <property name="text">
-          <string>Sequência de questões perfeitas: </string>
-         </property>
-         <property name="textFormat">
-          <enum>Qt::PlainText</enum>
-         </property>
-         <property name="wordWrap">
-          <bool>true</bool>
-         </property>
-        </widget>
        </widget>
        <widget class="QPushButton" name="btn_voltarmodos3_2">
         <property name="geometry">
@@ -5128,7 +5091,7 @@ color: #222222;
 padding: 0 18px</string>
         </property>
         <property name="text">
-         <string>Modos</string>
+         <string>Continuar</string>
         </property>
        </widget>
        <widget class="QFrame" name="frame_card2_gabarito_2">
@@ -7823,10 +7786,10 @@ background-color: transparent;</string>
        <widget class="QFrame" name="frame_card_rankinggeral">
         <property name="geometry">
          <rect>
-          <x>150</x>
+          <x>40</x>
           <y>240</y>
-          <width>601</width>
-          <height>631</height>
+          <width>711</width>
+          <height>291</height>
          </rect>
         </property>
         <property name="font">
@@ -7847,8 +7810,8 @@ background-color: #d9dbdb;</string>
           <rect>
            <x>30</x>
            <y>40</y>
-           <width>531</width>
-           <height>564</height>
+           <width>661</width>
+           <height>131</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="layout_card_rankinggeral">
@@ -7915,191 +7878,7 @@ QComboBox:hover{
             </property>
            </widget>
           </item>
-          <item>
-           <widget class="QLabel" name="lbl_tabela_subtitulo_rankinggeral">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>50</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>50</height>
-             </size>
-            </property>
-            <property name="font">
-             <font>
-              <family>Arbutus Slab</family>
-              <pointsize>20</pointsize>
-             </font>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color: white;
-color: #222222;
-border: 2px solid #921913;
-border-radius: 5px;
-padding: 0 8px</string>
-            </property>
-            <property name="text">
-             <string>Nome dos Alunos:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QListWidget" name="lista_alunos">
-            <property name="styleSheet">
-             <string notr="true">background-color: white;
-color: #222222;
-border: 2px solid #921913;
-border-radius: 5px;
-padding: 0 8px</string>
-            </property>
-           </widget>
-          </item>
          </layout>
-        </widget>
-        <widget class="QFrame" name="frame_card_rankinggeral_2">
-         <property name="geometry">
-          <rect>
-           <x>0</x>
-           <y>0</y>
-           <width>601</width>
-           <height>631</height>
-          </rect>
-         </property>
-         <property name="font">
-          <font>
-           <pointsize>2</pointsize>
-          </font>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">border-radius: 25px;
-border: 2px solid black;
-background-color: #d9dbdb;</string>
-         </property>
-         <property name="frameShape">
-          <enum>QFrame::NoFrame</enum>
-         </property>
-         <widget class="QWidget" name="verticalLayoutWidget_8">
-          <property name="geometry">
-           <rect>
-            <x>30</x>
-            <y>40</y>
-            <width>531</width>
-            <height>564</height>
-           </rect>
-          </property>
-          <layout class="QVBoxLayout" name="layout_card_rankinggeral_3">
-           <item>
-            <widget class="QLabel" name="lbl_tabela_titulo_rankinggeral_3">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>50</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>50</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>Arbutus Slab</family>
-               <pointsize>20</pointsize>
-              </font>
-             </property>
-             <property name="styleSheet">
-              <string notr="true">background-color: white;
-color: #222222;
-border: 2px solid #921913;
-border-radius: 5px;
-padding: 0 8px</string>
-             </property>
-             <property name="text">
-              <string>Escolha a turma:</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QComboBox" name="comboBox_turmas_3">
-             <property name="minimumSize">
-              <size>
-               <width>200</width>
-               <height>60</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>Arbutus Slab</family>
-               <pointsize>20</pointsize>
-              </font>
-             </property>
-             <property name="styleSheet">
-              <string notr="true">QComboBox{
-    background-color: #921913;
-    border: none;
-    border-radius: 5px;
-    color: white;
-}
-
-QComboBox:hover{
-    background-color: #62100d;
-}</string>
-             </property>
-             <property name="currentIndex">
-              <number>-1</number>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="lbl_tabela_subtitulo_rankinggeral_3">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>50</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>50</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>Arbutus Slab</family>
-               <pointsize>20</pointsize>
-              </font>
-             </property>
-             <property name="styleSheet">
-              <string notr="true">background-color: white;
-color: #222222;
-border: 2px solid #921913;
-border-radius: 5px;
-padding: 0 8px</string>
-             </property>
-             <property name="text">
-              <string>Nome dos Alunos:</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QListWidget" name="lista_alunos_3">
-             <property name="styleSheet">
-              <string notr="true">background-color: white;
-color: #222222;
-border: 2px solid #921913;
-border-radius: 5px;
-padding: 0 8px</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
         </widget>
        </widget>
        <widget class="QLabel" name="lbl_col1_rankinggeral">
@@ -8245,7 +8024,7 @@ background-color: transparent;</string>
          <rect>
           <x>810</x>
           <y>240</y>
-          <width>821</width>
+          <width>611</width>
           <height>541</height>
          </rect>
         </property>
@@ -8820,146 +8599,6 @@ padding: 0 18px</string>
          <bool>true</bool>
         </property>
        </widget>
-       <widget class="QPushButton" name="btn_voltarpararanking2_8">
-        <property name="geometry">
-         <rect>
-          <x>830</x>
-          <y>800</y>
-          <width>181</width>
-          <height>71</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <family>Arbutus Slab</family>
-          <pointsize>15</pointsize>
-         </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QPushButton{
-    background-color: #921913;
-    border: none;
-    border-radius: 25px;
-    color: white;
-}
-
-QPushButton:hover{
-    background-color: #7a1410;
-}
-
-QPushButton:pressed{
-    background-color: #5a0f0c;
-}</string>
-        </property>
-        <property name="text">
-         <string>Adicionar coluna</string>
-        </property>
-       </widget>
-       <widget class="QPushButton" name="btn_voltarpararanking2_9">
-        <property name="geometry">
-         <rect>
-          <x>1030</x>
-          <y>800</y>
-          <width>181</width>
-          <height>71</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <family>Arbutus Slab</family>
-          <pointsize>15</pointsize>
-         </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QPushButton{
-    background-color: #921913;
-    border: none;
-    border-radius: 25px;
-    color: white;
-}
-
-QPushButton:hover{
-    background-color: #7a1410;
-}
-
-QPushButton:pressed{
-    background-color: #5a0f0c;
-}</string>
-        </property>
-        <property name="text">
-         <string>Remover coluna</string>
-        </property>
-       </widget>
-       <widget class="QPushButton" name="btn_voltarpararanking2_10">
-        <property name="geometry">
-         <rect>
-          <x>1230</x>
-          <y>800</y>
-          <width>181</width>
-          <height>71</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <family>Arbutus Slab</family>
-          <pointsize>15</pointsize>
-         </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QPushButton{
-    background-color: #921913;
-    border: none;
-    border-radius: 25px;
-    color: white;
-}
-
-QPushButton:hover{
-    background-color: #7a1410;
-}
-
-QPushButton:pressed{
-    background-color: #5a0f0c;
-}</string>
-        </property>
-        <property name="text">
-         <string>Adicionar linha</string>
-        </property>
-       </widget>
-       <widget class="QPushButton" name="btn_voltarpararanking2_11">
-        <property name="geometry">
-         <rect>
-          <x>1430</x>
-          <y>800</y>
-          <width>181</width>
-          <height>71</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <family>Arbutus Slab</family>
-          <pointsize>15</pointsize>
-         </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QPushButton{
-    background-color: #921913;
-    border: none;
-    border-radius: 25px;
-    color: white;
-}
-
-QPushButton:hover{
-    background-color: #7a1410;
-}
-
-QPushButton:pressed{
-    background-color: #5a0f0c;
-}</string>
-        </property>
-        <property name="text">
-         <string>Remover linha</string>
-        </property>
-       </widget>
        <zorder>lbl_rodape_rankinggeral</zorder>
        <zorder>img_cel_C_rankinggeral</zorder>
        <zorder>lbl_col5_rankinggeral</zorder>
@@ -8975,10 +8614,6 @@ QPushButton:pressed{
        <zorder>lbl_col4_rankinggeral</zorder>
        <zorder>tbl_rankinggeral</zorder>
        <zorder>btn_voltarpararanking2</zorder>
-       <zorder>btn_voltarpararanking2_8</zorder>
-       <zorder>btn_voltarpararanking2_9</zorder>
-       <zorder>btn_voltarpararanking2_10</zorder>
-       <zorder>btn_voltarpararanking2_11</zorder>
       </widget>
      </widget>
     </widget>
@@ -11641,13 +11276,15 @@ padding: 0 18px</string>
          <font>
           <family>Arbutus Slab</family>
           <pointsize>20</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
          </font>
         </property>
         <property name="cursor">
          <cursorShape>ArrowCursor</cursorShape>
         </property>
         <property name="styleSheet">
-         <string notr="true">background-color: white;
+         <string notr="true">background-color: #921913;
 color: #222222;
 border: 2px solid #921913;
 border-radius: 25px;

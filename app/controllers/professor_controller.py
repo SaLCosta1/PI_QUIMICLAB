@@ -1,24 +1,3 @@
-# =========================================================
-# PROFESSOR CONTROLLER
-# =========================================================
-# Controller responsável pela área do professor.
-#
-# Esta classe controla funcionalidades relacionadas a:
-# - edição de perguntas
-# - criação de perguntas
-# - exclusão de perguntas
-# - relatórios
-# - rankings
-# - manipulação de tabelas
-#
-# Atualmente o sistema funciona apenas no FRONT-END,
-# ou seja, ainda não existe integração com banco de dados
-# ou backend real.
-#
-# O objetivo deste controller é controlar o comportamento
-# visual e a navegação entre as telas da área do professor.
-# =========================================================
-
 from PySide6.QtWidgets import (
     QMessageBox,
     QListWidgetItem,
@@ -35,39 +14,13 @@ from app.utils.helpers import (
 
 from app.services.pergunta_service import criar_pergunta, listar_perguntas, atualizar_pergunta, deletar_pergunta, obter_pergunta
 
-
 class ProfessorController:
 
-    # =====================================================
-    # CONSTRUTOR
-    # =====================================================
-    # Recebe a instância principal da aplicação.
-    #
-    # Aqui são definidos:
-    # - os atalhos para a janela
-    # - os eventos de clique dos botões
-    # - as conexões entre telas
-    # =====================================================
-
     def __init__(self, main):
-
         self.main = main
-
-        # Atalho para acessar widgets da interface
         w = main.window
-
-        # Atalho para o método de navegação
         ir = main.ir_para
-
-        # Variável utilizada para armazenar
-        # a pergunta atualmente selecionada.
         self._pergunta_selecionada = None
-
-        # =================================================
-        # pg_areaprof
-        # =================================================
-        # Tela principal da área do professor.
-        # =================================================
 
         w.btn_voltarloginprof.clicked.connect(
             self._sair_prof
@@ -85,13 +38,6 @@ class ProfessorController:
             lambda: ir(w.pg_ranking_nav)
         )
 
-        # =================================================
-        # pg_editarperguntas
-        # =================================================
-        # Tela responsável pela listagem e gerenciamento
-        # das perguntas cadastradas.
-        # =================================================
-
         w.btn_voltarareaprof.clicked.connect(
             lambda: ir(w.pg_areaprof)
         )
@@ -103,12 +49,6 @@ class ProfessorController:
         w.btn_editarpergunta.clicked.connect(
             lambda: self._abrir_detalhe_pergunta()
         )
-
-        # =================================================
-        # pg_editarpergunta_detalhe
-        # =================================================
-        # Tela de detalhes da pergunta selecionada.
-        # =================================================
 
         w.btn_voltarpararanking_4.clicked.connect(
             lambda: ir(w.pg_editarperguntas)
@@ -130,21 +70,13 @@ class ProfessorController:
             self._cancelar_exclusao
         )
 
-        # Detecta alterações no filtro de dificuldade
         w.comboBox_turma3_2.currentIndexChanged.connect(
             self._filtrar_detalhe
         )
 
-        # Detecta seleção de pergunta na lista
         w.lista_alunos3_2.itemClicked.connect(
             self._selecionar_pergunta
         )
-
-        # =================================================
-        # pg_questao_edicao
-        # =================================================
-        # Tela utilizada para editar perguntas.
-        # =================================================
 
         w.btn_voltareditarperguntas.clicked.connect(
             lambda: ir(w.pg_editarpergunta_detalhe)
@@ -154,12 +86,6 @@ class ProfessorController:
             self._confirmar_edicao
         )
 
-        # =================================================
-        # pg_questao_adicionar
-        # =================================================
-        # Tela utilizada para adicionar perguntas.
-        # =================================================
-
         w.btn_voltareditarperguntas_2.clicked.connect(
             lambda: ir(w.pg_editarperguntas)
         )
@@ -167,12 +93,6 @@ class ProfessorController:
         w.btn_confirmaradicao.clicked.connect(
             self._confirmar_adicao
         )
-
-        # =================================================
-        # pg_ranking
-        # =================================================
-        # Tela principal dos relatórios.
-        # =================================================
 
         w.btn_voltarareaprof2.clicked.connect(
             lambda: ir(w.pg_areaprof)
@@ -186,12 +106,6 @@ class ProfessorController:
             lambda: self._abrir_relatorio_individual()
         )
 
-        # =================================================
-        # pg_ranking_nav
-        # =================================================
-        # Tela de navegação entre rankings.
-        # =================================================
-
         w.btn_voltarareaprof2_2.clicked.connect(
             lambda: ir(w.pg_areaprof)
         )
@@ -204,18 +118,20 @@ class ProfessorController:
             lambda: self._abrir_ranking_geral()
         )
 
-        # =================================================
-        # pg_relatoriogeral
-        # =================================================
-        # Tela de relatório geral dos alunos.
-        # =================================================
-
         w.btn_voltarpararanking_2.clicked.connect(
             lambda: ir(w.pg_ranking)
         )
 
         w.btn_verificar.clicked.connect(
-            lambda: ir(w.pg_relatorioindividual)
+            self._abrir_relatorio_individual
+        )
+
+        w.lista_alunos3.itemClicked.connect(
+            self._abrir_relatorio_individual
+        )
+
+        w.lista_alunos2.itemClicked.connect(
+            self._abrir_relatorio_individual
         )
 
         w.comboBox_turma2.currentIndexChanged.connect(
@@ -225,12 +141,6 @@ class ProfessorController:
         w.comboBox_modo2.currentIndexChanged.connect(
             self._filtrar_relatorio_geral
         )
-
-        # =================================================
-        # pg_relatorioturmas
-        # =================================================
-        # Tela de relatório por turmas.
-        # =================================================
 
         w.btn_voltarpararanking.clicked.connect(
             lambda: ir(w.pg_ranking)
@@ -244,12 +154,6 @@ class ProfessorController:
             self._filtrar_relatorio_turmas
         )
 
-        # =================================================
-        # pg_rankinggeral
-        # =================================================
-        # Tela de ranking geral dos alunos.
-        # =================================================
-
         w.btn_voltarpararanking2.clicked.connect(
             lambda: ir(w.pg_ranking_nav)
         )
@@ -258,117 +162,87 @@ class ProfessorController:
             self._filtrar_ranking_geral
         )
 
-        # =================================================
-        # BOTÕES DE EDIÇÃO DA TABELA
-        # Ranking geral
-        # =================================================
-
-        w.btn_voltarpararanking2_8.clicked.connect(
-            lambda: self._adicionar_coluna(
-                w.tbl_rankinggeral
+        if hasattr(w, 'btn_voltarpararanking2_8'):
+            w.btn_voltarpararanking2_8.clicked.connect(
+                lambda: self._adicionar_coluna(
+                    w.tbl_rankinggeral
+                )
             )
-        )
 
-        w.btn_voltarpararanking2_9.clicked.connect(
-            lambda: self._remover_coluna(
-                w.tbl_rankinggeral
+        if hasattr(w, 'btn_voltarpararanking2_9'):
+            w.btn_voltarpararanking2_9.clicked.connect(
+                lambda: self._remover_coluna(
+                    w.tbl_rankinggeral
+                )
             )
-        )
 
-        w.btn_voltarpararanking2_10.clicked.connect(
-            lambda: self._adicionar_linha(
-                w.tbl_rankinggeral
+        if hasattr(w, 'btn_voltarpararanking2_10'):
+            w.btn_voltarpararanking2_10.clicked.connect(
+                lambda: self._adicionar_linha(
+                    w.tbl_rankinggeral
+                )
             )
-        )
 
-        w.btn_voltarpararanking2_11.clicked.connect(
-            lambda: self._remover_linha(
-                w.tbl_rankinggeral
+        if hasattr(w, 'btn_voltarpararanking2_11'):
+            w.btn_voltarpararanking2_11.clicked.connect(
+                lambda: self._remover_linha(
+                    w.tbl_rankinggeral
+                )
             )
-        )
-
-        # =================================================
-        # pg_rankingturmas
-        # =================================================
 
         w.btn_voltarpararanking2_3.clicked.connect(
             lambda: ir(w.pg_ranking_nav)
         )
 
-        # =================================================
-        # BOTÕES DE EDIÇÃO DA TABELA
-        # Ranking por turmas
-        # =================================================
-
-        w.btn_voltarpararanking2_12.clicked.connect(
-            lambda: self._adicionar_coluna(
-                w.tabela_rankingturmas
+        if hasattr(w, 'btn_voltarpararanking2_12'):
+            w.btn_voltarpararanking2_12.clicked.connect(
+                lambda: self._adicionar_coluna(
+                    w.tabela_rankingturmas
+                )
             )
-        )
 
-        w.btn_voltarpararanking2_13.clicked.connect(
-            lambda: self._remover_coluna(
-                w.tabela_rankingturmas
+        if hasattr(w, 'btn_voltarpararanking2_13'):
+            w.btn_voltarpararanking2_13.clicked.connect(
+                lambda: self._remover_coluna(
+                    w.tabela_rankingturmas
+                )
             )
-        )
 
-        w.btn_voltarpararanking2_14.clicked.connect(
-            lambda: self._adicionar_linha(
-                w.tabela_rankingturmas
+        if hasattr(w, 'btn_voltarpararanking2_14'):
+            w.btn_voltarpararanking2_14.clicked.connect(
+                lambda: self._adicionar_linha(
+                    w.tabela_rankingturmas
+                )
             )
-        )
 
-        w.btn_voltarpararanking2_15.clicked.connect(
-            lambda: self._remover_linha(
-                w.tabela_rankingturmas
+        if hasattr(w, 'btn_voltarpararanking2_15'):
+            w.btn_voltarpararanking2_15.clicked.connect(
+                lambda: self._remover_linha(
+                    w.tabela_rankingturmas
+                )
             )
-        )
-
-        # =================================================
-        # pg_relatorioindividual
-        # =================================================
 
         w.btn_voltarpararanking_5.clicked.connect(
             lambda: ir(w.pg_relatoriogeral)
         )
 
-        # =================================================
-        # CONFIGURAÇÃO INICIAL DAS TABELAS
-        # =================================================
-        # Aplica estilo e comportamento padrão.
-        # =================================================
-
         configurar_tabela(w.tbl_rankinggeral)
         configurar_tabela(w.tabela_rankingturmas)
 
-    # =====================================================
-    # EDITAR PERGUNTAS
-    # =====================================================
-
     def _abrir_editar_perguntas(self):
-        """
-        Abre a tela de edição de perguntas.
-        """
 
         self.main.ir_para(
             self.main.window.pg_editarperguntas
         )
 
     def _abrir_detalhe_pergunta(self):
-        """
-        Abre a tela de detalhes da pergunta.
-
-        Também limpa os filtros e a lista visual.
-        """
 
         w = self.main.window
 
-        # Evita disparar sinais durante atualização
         w.comboBox_turma3_2.blockSignals(True)
 
         w.comboBox_turma3_2.clear()
 
-        # Adiciona filtros disponíveis
         w.comboBox_turma3_2.addItems([
             "Todas",
             "Fácil",
@@ -378,10 +252,8 @@ class ProfessorController:
 
         w.comboBox_turma3_2.blockSignals(False)
 
-        # Limpa lista de perguntas
         w.lista_alunos3_2.clear()
 
-        # Carrega perguntas do banco
         perguntas = listar_perguntas()
         for pergunta in perguntas:
             item_text = f"[{pergunta['nome_nivel']}] {pergunta['enunciado']}"
@@ -389,7 +261,6 @@ class ProfessorController:
             item.setData(Qt.UserRole, pergunta['id_pergunta'])
             w.lista_alunos3_2.addItem(item)
 
-        # Esconde botões de exclusão
         self._esconder_botoes_exclusao()
 
         self.main.ir_para(
@@ -397,100 +268,203 @@ class ProfessorController:
         )
 
     def _sair_prof(self):
-        """
-        Retorna o professor para a tela de login e encerra a sessão.
-        """
         self.main.usuario_logado = None
         self.main.ir_para(self.main.window.pg_loginprof)
 
     def _abrir_relatorio_geral(self):
-        self.main.ir_para(self.main.window.pg_relatoriogeral)
+
+        try:
+            from app.services.jogo_service import buscar_turmas
+
+            w = self.main.window
+
+            turmas = buscar_turmas()
+
+            if hasattr(w, 'comboBox_turma2'):
+                w.comboBox_turma2.blockSignals(True)
+                w.comboBox_turma2.clear()
+                w.comboBox_turma2.addItem("Todas")
+                for turma in turmas:
+                    w.comboBox_turma2.addItem(turma)
+                w.comboBox_turma2.blockSignals(False)
+                w.comboBox_turma2.setCurrentIndex(0)
+
+            if hasattr(w, 'comboBox_modo2'):
+                w.comboBox_modo2.blockSignals(True)
+                w.comboBox_modo2.clear()
+                w.comboBox_modo2.addItems(["Fácil", "Médio", "Difícil"])
+                w.comboBox_modo2.blockSignals(False)
+                w.comboBox_modo2.setCurrentIndex(0)
+
+            self.main.ir_para(w.pg_relatoriogeral)
+
+        except Exception as exc:
+            print(f"[ProfessorController] Erro ao abrir relatório geral: {exc}")
 
     def _abrir_relatorio_turmas(self):
-        self.main.ir_para(self.main.window.pg_relatorioturmas)
+        try:
+            from app.services.jogo_service import buscar_turmas
+
+            w = self.main.window
+
+            turmas = buscar_turmas()
+
+            if hasattr(w, 'comboBox_turma3'):
+                w.comboBox_turma3.blockSignals(True)
+                w.comboBox_turma3.clear()
+                w.comboBox_turma3.addItem("Todas")
+                for turma in turmas:
+                    w.comboBox_turma3.addItem(turma)
+                w.comboBox_turma3.blockSignals(False)
+                w.comboBox_turma3.setCurrentIndex(0)
+
+            if hasattr(w, 'comboBox_modo2_2'):
+                w.comboBox_modo2_2.blockSignals(True)
+                w.comboBox_modo2_2.clear()
+                w.comboBox_modo2_2.addItems(["Fácil", "Médio", "Difícil"])
+                w.comboBox_modo2_2.blockSignals(False)
+                w.comboBox_modo2_2.setCurrentIndex(0)
+
+            self._filtrar_relatorio_turmas()
+            self.main.ir_para(w.pg_relatorioturmas)
+
+        except Exception as exc:
+            print(f"[ProfessorController] Erro ao abrir relatório de turmas: {exc}")
 
     def _abrir_relatorio_individual(self):
-        self.main.ir_para(self.main.window.pg_relatorioindividual)
+        w = self.main.window
+
+        if not hasattr(w, 'lista_alunos3') or not w.lista_alunos3.currentItem():
+            QMessageBox.warning(w, 'Erro', 'Selecione um aluno para ver o relatório.')
+            return
+
+        item_selecionado = w.lista_alunos3.currentItem()
+        dados_aluno = item_selecionado.data(1000)
+        id_nivel = item_selecionado.data(1001)
+
+        if not dados_aluno:
+            QMessageBox.warning(w, 'Erro', 'Não foi possível obter dados do aluno.')
+            return
+
+        # Adiciona id_nivel aos dados do aluno para usar em _preencher_relatorio_individual
+        if id_nivel:
+            dados_aluno['id_nivel'] = id_nivel
+            
+            # Busca pontuação no ranking para comparação com média geral
+            try:
+                from app.services.jogo_service import buscar_ranking
+                ranking = buscar_ranking(id_nivel, limite=500)
+                id_usuario = dados_aluno.get('id_usuario')
+                for r in ranking:
+                    if r.get('id_usuario') == id_usuario:
+                        dados_aluno['melhor_pontuacao'] = r.get('melhor_pontuacao', 0)
+                        break
+                else:
+                    dados_aluno['melhor_pontuacao'] = 0
+            except Exception as e:
+                print(f"[ProfessorController] Erro ao buscar ranking para pontuação: {e}")
+                dados_aluno['melhor_pontuacao'] = 0
+
+        self._aluno_selecionado = dados_aluno
+
+        try:
+            self._preencher_relatorio_individual(dados_aluno)
+        except Exception as exc:
+            QMessageBox.warning(w, 'Erro', f'Erro ao carregar relatório: {exc}')
+            return
+
+        self.main.ir_para(w.pg_relatorioindividual)
 
     def _abrir_ranking_turmas(self):
-        self.main.ir_para(self.main.window.pg_rankingturmas)
+        try:
+            w = self.main.window
+
+            if hasattr(w, 'comboBox_turmas_2'):
+                w.comboBox_turmas_2.blockSignals(True)
+                w.comboBox_turmas_2.clear()
+                turmas_conhecidas = ["1A", "1B", "1C", "2A", "2B", "2C", "3A", "3B", "3C"]
+                for turma in turmas_conhecidas:
+                    w.comboBox_turmas_2.addItem(turma)
+                w.comboBox_turmas_2.blockSignals(False)
+                w.comboBox_turmas_2.setCurrentIndex(0)
+
+            self.main.ir_para(w.pg_rankingturmas)
+
+        except Exception as exc:
+            print(f"[ProfessorController] Erro ao abrir ranking de turmas: {exc}")
 
     def _abrir_ranking_geral(self):
-        self.main.ir_para(self.main.window.pg_rankinggeral)
+        try:
+            w = self.main.window
+
+            if hasattr(w, 'comboBox_turmas'):
+                w.comboBox_turmas.blockSignals(True)
+                w.comboBox_turmas.clear()
+                w.comboBox_turmas.addItem("Todas")
+                turmas_conhecidas = ["1A", "1B", "1C", "2A", "2B", "2C", "3A", "3B", "3C"]
+                for turma in turmas_conhecidas:
+                    w.comboBox_turmas.addItem(turma)
+                w.comboBox_turmas.blockSignals(False)
+                w.comboBox_turmas.setCurrentIndex(0)
+
+            self._filtrar_ranking_geral()
+            self.main.ir_para(w.pg_rankinggeral)
+
+        except Exception as exc:
+            print(f"[ProfessorController] Erro ao abrir ranking geral: {exc}")
 
     def _abrir_edicao(self):
-        """
-        Abre a tela de edição carregando os dados da pergunta selecionada.
-        """
         if not hasattr(self, '_pergunta_id') or not self._pergunta_id:
             QMessageBox.warning(self.main.window, 'Erro', 'Nenhuma pergunta selecionada.')
             return
-        
-        # Buscar dados completos da pergunta
+
         pergunta_dados = obter_pergunta(self._pergunta_id)
         if not pergunta_dados:
             QMessageBox.warning(self.main.window, 'Erro', 'Pergunta não encontrada.')
             return
-        
-        # Preencher campos de edição
+
         self.main.editor_controller.preencher_edicao(pergunta_dados)
-        
-        # Navegar para tela de edição
+
         self.main.ir_para(self.main.window.pg_questao_edicao)
 
     def _abrir_adicionar(self):
-        """
-        Abre a tela de adição de pergunta com campos limpos.
-        """
-        # Limpar campos
         self.main.editor_controller.limpar_campos_adicao()
-        
+
         self.main.ir_para(self.main.window.pg_questao_adicionar)
 
     def _confirmar_exclusao(self):
-        """
-        Mostra botões de confirmação quando professor clica em excluir.
-        """
         w = self.main.window
-        
-        # Esconder botões de ação
+
         if hasattr(w, 'btn_editar'):
             w.btn_editar.setVisible(False)
         if hasattr(w, 'btn_excluir'):
             w.btn_excluir.setVisible(False)
-        
-        # Mostrar botões de confirmação
+
         if hasattr(w, 'btn_confirmar_exclusao'):
             w.btn_confirmar_exclusao.setVisible(True)
         if hasattr(w, 'btn_negar_exclusao'):
             w.btn_negar_exclusao.setVisible(True)
 
     def _cancelar_exclusao(self):
-        """
-        Cancela exclusão e volta aos botões de ação normais.
-        """
+
         w = self.main.window
-        
-        # Mostrar botões de ação
+
         if hasattr(w, 'btn_editar'):
             w.btn_editar.setVisible(True)
         if hasattr(w, 'btn_excluir'):
             w.btn_excluir.setVisible(True)
-        
-        # Esconder botões de confirmação
+
         if hasattr(w, 'btn_confirmar_exclusao'):
             w.btn_confirmar_exclusao.setVisible(False)
         if hasattr(w, 'btn_negar_exclusao'):
             w.btn_negar_exclusao.setVisible(False)
 
     def _excluir_pergunta(self):
-        """
-        Executa a exclusão da pergunta selecionada.
-        """
+
         if not hasattr(self, '_pergunta_id') or not self._pergunta_id:
             QMessageBox.warning(self.main.window, 'Erro', 'Nenhuma pergunta selecionada.')
             return
-        
+
         ok, erro = deletar_pergunta(self._pergunta_id)
         if not ok:
             QMessageBox.warning(self.main.window, 'Erro', f'Falha ao excluir pergunta: {erro}')
@@ -500,14 +474,11 @@ class ProfessorController:
         self.main.ir_para(self.main.window.pg_editarperguntas)
 
     def _confirmar_edicao(self):
-        """
-        Salva as alterações da pergunta editada.
-        """
+
         if not hasattr(self, '_pergunta_id') or not self._pergunta_id:
             QMessageBox.warning(self.main.window, 'Erro', 'Nenhuma pergunta selecionada.')
             return
-        
-        # Coleta dados do editor e tenta salvar no banco
+
         dados = None
         try:
             dados = self.main.editor_controller.coletar_edicao()
@@ -516,7 +487,6 @@ class ProfessorController:
             return
 
         if not dados:
-            # fallback: apenas navega de volta
             self.main.ir_para(self.main.window.pg_editarpergunta_detalhe)
             return
 
@@ -529,7 +499,6 @@ class ProfessorController:
         self.main.ir_para(self.main.window.pg_editarpergunta_detalhe)
 
     def _confirmar_adicao(self):
-        # Coleta dados do editor e tenta salvar no banco
         dados = None
         try:
             dados = self.main.editor_controller.coletar_adicao()
@@ -537,7 +506,6 @@ class ProfessorController:
             pass
 
         if not dados:
-            # fallback: apenas navega para a lista
             self.main.ir_para(self.main.window.pg_editarperguntas)
             return
 
@@ -552,13 +520,10 @@ class ProfessorController:
         self.main.ir_para(self.main.window.pg_editarperguntas)
 
     def _selecionar_pergunta(self, item):
-        """
-        Armazena a pergunta selecionada (ID e texto) e mostra os botões de ação.
-        """
+
         self._pergunta_selecionada = item.text()
-        self._pergunta_id = item.data(Qt.UserRole)  # Armazenar ID para edição/exclusão
-        
-        # Mostra botões de edição e exclusão quando pergunta é selecionada
+        self._pergunta_id = item.data(Qt.UserRole)
+
         self._mostrar_botoes_acao()
 
     def _adicionar_coluna(self, tabela):
@@ -582,84 +547,289 @@ class ProfessorController:
         tabela.removeRow(tabela.rowCount() - 1)
 
     def _esconder_botoes_exclusao(self):
-        """
-        Esconde os botões de editar e excluir pergunta por padrão.
-        Eles só aparecem quando uma pergunta é selecionada.
-        """
+
         w = self.main.window
-        
-        # Esconder botões de ação
+
         if hasattr(w, 'btn_editar'):
             w.btn_editar.setVisible(False)
         if hasattr(w, 'btn_excluir'):
             w.btn_excluir.setVisible(False)
-        
-        # Esconder botões de confirmação de exclusão
+
         if hasattr(w, 'btn_confirmar_exclusao'):
             w.btn_confirmar_exclusao.setVisible(False)
         if hasattr(w, 'btn_negar_exclusao'):
             w.btn_negar_exclusao.setVisible(False)
 
     def _mostrar_botoes_acao(self):
-        """
-        Mostra os botões de editar e excluir quando uma pergunta é selecionada.
-        """
         w = self.main.window
-        
-        # Mostrar botões de ação
+
         if hasattr(w, 'btn_editar'):
             w.btn_editar.setVisible(True)
         if hasattr(w, 'btn_excluir'):
             w.btn_excluir.setVisible(True)
-        
-        # Esconder botões de confirmação (aparecem só quando confirmar exclusão)
+
         if hasattr(w, 'btn_confirmar_exclusao'):
             w.btn_confirmar_exclusao.setVisible(False)
         if hasattr(w, 'btn_negar_exclusao'):
             w.btn_negar_exclusao.setVisible(False)
 
     def _filtrar_detalhe(self):
-        """
-        Filtra as perguntas conforme a dificuldade selecionada.
-        """
         w = self.main.window
-        
-        # Obter filtro selecionado
+
         filtro = w.comboBox_turma3_2.currentText()
-        
-        # Mapear nome para id_nivel
+
         filtro_map = {
             "Todas": None,
             "Fácil": 1,
             "Médio": 2,
             "Difícil": 3
         }
-        
+
         id_nivel = filtro_map.get(filtro)
-        
-        # Limpar lista
+
         w.lista_alunos3_2.clear()
-        
-        # Carregar perguntas com filtro
+
         perguntas = listar_perguntas(id_nivel)
-        
+
         for pergunta in perguntas:
             item_text = f"[{pergunta['nome_nivel']}] {pergunta['enunciado']}"
             item = QListWidgetItem(item_text)
             item.setData(Qt.UserRole, pergunta['id_pergunta'])
             w.lista_alunos3_2.addItem(item)
-        
-        # Esconde botões quando filtro é mudado
+
         self._esconder_botoes_exclusao()
 
     def _filtrar_relatorio_geral(self):
-        """Stub: filtrar relatório geral (futuro backend)."""
-        return
+        try:
+            from app.services.jogo_service import buscar_alunos_por_turma, buscar_ranking
+
+            w = self.main.window
+
+            turma_selecionada = w.comboBox_turma2.currentText() if hasattr(w, 'comboBox_turma2') else "Todas"
+            nivel_texto = w.comboBox_modo2.currentText() if hasattr(w, 'comboBox_modo2') else "Fácil"
+
+            nivel_map = {"Fácil": 1, "Médio": 2, "Difícil": 3}
+            id_nivel = nivel_map.get(nivel_texto, 1)
+
+            alunos = buscar_alunos_por_turma(turma_selecionada if turma_selecionada != "Todas" else None)
+
+            ranking_dados = buscar_ranking(id_nivel, limite=500)
+
+            pontuacoes = {r.get('id_usuario'): r.get('melhor_pontuacao', 0) for r in ranking_dados}
+
+            if hasattr(w, 'lista_alunos2'):
+                w.lista_alunos2.clear()
+
+                for aluno in alunos:
+                    id_aluno = aluno.get('id_usuario')
+                    nome = aluno.get('nome', 'N/A')
+                    turma = aluno.get('turma', 'N/A')
+                    pontos = pontuacoes.get(id_aluno, 0)
+
+                    texto = f"{nome} (Turma: {turma}) - {pontos} pts"
+                    item = QListWidgetItem(texto)
+                    item.setData(1000, aluno)
+                    item.setData(1001, id_nivel)
+                    w.lista_alunos2.addItem(item)
+
+        except Exception as exc:
+            print(f"[ProfessorController] Erro ao filtrar relatório geral: {exc}")
 
     def _filtrar_relatorio_turmas(self):
-        """Stub: filtrar relatório por turmas (futuro backend)."""
-        return
+        try:
+            from app.services.jogo_service import buscar_desempenho_geral, buscar_ranking, buscar_alunos_por_turma, contar_acertos_nivel_aluno
+
+            w = self.main.window
+
+            turma_selecionada = w.comboBox_turma3.currentText() if hasattr(w, 'comboBox_turma3') else ""
+            nivel_texto = w.comboBox_modo2_2.currentText() if hasattr(w, 'comboBox_modo2_2') else ""
+
+            nivel_map = {"Fácil": 1, "Médio": 2, "Difícil": 3}
+            id_nivel = nivel_map.get(nivel_texto, 1)
+            
+            alunos = buscar_alunos_por_turma(turma_selecionada if turma_selecionada != "Todas" and turma_selecionada else None)
+            
+            # Lista para armazenar acertos de cada aluno (para calcular média)
+            acertos_lista = []
+            
+            if hasattr(w, 'lista_alunos3'):
+                w.lista_alunos3.clear()
+                for aluno in alunos:
+                    id_aluno = aluno.get('id_usuario')
+                    nome = aluno.get('nome', 'N/A')
+                    turma = aluno.get('turma', 'N/A')
+                    
+                    acertos = contar_acertos_nivel_aluno(id_aluno, id_nivel)
+                    acertos_lista.append(acertos)
+                    
+                    texto = f"{nome} (Turma: {turma}) - {acertos} acertos"
+                    item = QListWidgetItem(texto)
+                    item.setData(1000, aluno)
+                    item.setData(1001, id_nivel)
+                    w.lista_alunos3.addItem(item)
+
+            # Calcula estatísticas da turma baseado nos acertos
+            if acertos_lista:
+                media = sum(acertos_lista) / len(acertos_lista)
+                menor_nota = min(acertos_lista)
+                maior_nota = max(acertos_lista)
+            else:
+                media = 0
+                menor_nota = 0
+                maior_nota = 0
+
+            if hasattr(w, 'lbl_mediaturma2'):
+                w.lbl_mediaturma2.setText(f"{media:.1f}")
+
+            if hasattr(w, 'lbl_menornota'):
+                w.lbl_menornota.setText(f"{menor_nota:.1f}")
+
+            if hasattr(w, 'lbl_maiornota'):
+                w.lbl_maiornota.setText(f"{maior_nota:.1f}")
+
+            if hasattr(w, 'lista_perguntascommenosacerto'):
+                w.lista_perguntascommenosacerto.clear()
+
+                dados_erro = buscar_desempenho_geral()
+                if dados_erro:
+                    for item in dados_erro[:10]:
+                        enunciado = item.get('enunciado', 'Sem nome')[:50]
+                        taxa_erro = item.get('taxa_erro', 0)
+                        texto = f"{enunciado}... ({taxa_erro:.0f}%)"
+                        list_item = QListWidgetItem(texto)
+                        w.lista_perguntascommenosacerto.addItem(list_item)
+
+        except Exception as exc:
+            print(f"[ProfessorController] Erro ao filtrar relatório de turmas: {exc}")
 
     def _filtrar_ranking_geral(self):
-        """Stub: filtrar ranking geral (futuro backend)."""
-        return
+        try:
+            from app.services.jogo_service import buscar_ranking_geral, buscar_desempenho_aluno
+
+            w = self.main.window
+
+            ranking = buscar_ranking_geral(limite=50)
+
+            if hasattr(w, 'tbl_rankinggeral'):
+                tabela = w.tbl_rankinggeral
+                tabela.setRowCount(0)
+                
+                if not ranking:
+                    print("[ProfessorController] Nenhum dado de ranking encontrado")
+                    return
+
+                for idx, aluno in enumerate(ranking):
+                    tabela.insertRow(idx)
+                    
+                    nome = aluno.get('nome', 'N/A')
+                    turma = aluno.get('turma', 'N/A')
+                    pontos = aluno.get('pontuacao_total', 0)
+                    
+                    id_usuario = aluno.get('id_usuario')
+                    acertos = 0
+                    media = 0
+                    
+                    if id_usuario:
+                        desempenho = buscar_desempenho_aluno(id_usuario)
+                        if desempenho:
+                            acertos = sum(1 for d in desempenho if d.get('correta'))
+                            total = len(desempenho)
+                            media = (acertos / total * 100) if total > 0 else 0
+
+                    tabela.setItem(idx, 0, QTableWidgetItem(str(idx + 1)))
+                    tabela.setItem(idx, 1, QTableWidgetItem(str(acertos)))
+                    tabela.setItem(idx, 2, QTableWidgetItem(str(pontos)))
+                    tabela.setItem(idx, 3, QTableWidgetItem(f"{media:.1f}%"))
+
+        except Exception as exc:
+            print(f"[ProfessorController] Erro ao filtrar ranking geral: {exc}")
+
+    def _preencher_relatorio_individual(self, dados_aluno):
+        """
+        Preenche a tela de relatório individual com dados do aluno selecionado.
+        Mostra desempenho em modo DESAFIO apenas.
+        """
+        try:
+            from app.services.jogo_service import buscar_desempenho_aluno, buscar_ranking
+
+            w = self.main.window
+
+            id_usuario = dados_aluno.get('id_usuario')
+            nome = dados_aluno.get('nome', 'N/A')
+            turma = dados_aluno.get('turma', 'N/A')
+            id_nivel = dados_aluno.get('id_nivel', 1) if isinstance(dados_aluno, dict) and 'id_nivel' in dados_aluno else 1
+
+            if hasattr(w, 'lbl_nome_aluno'):
+                w.lbl_nome_aluno.setText(f"Aluno: {nome}")
+
+            if hasattr(w, 'lbl_turma_aluno'):
+                w.lbl_turma_aluno.setText(f"Turma: {turma}")
+
+            if id_usuario:
+                desempenho = buscar_desempenho_aluno(id_usuario)
+                
+                acertos = 0
+                taxa_acerto = 0.0
+                tempo_medio = 0.0
+                taxa_dicas = 0.0
+                nivel_desbloqueado = "Fácil"
+                comparacao = "Sem dados"
+
+                if desempenho:
+                    total_perguntas = len(desempenho)
+                    acertos = sum(1 for d in desempenho if d.get('correta'))
+                    taxa_acerto = (acertos / total_perguntas * 100) if total_perguntas > 0 else 0
+
+                    tempos = [d.get('tempo_resposta_seg', 0) for d in desempenho if d.get('tempo_resposta_seg')]
+                    tempo_medio = sum(tempos) / len(tempos) if tempos else 0
+
+                    total_dicas = sum(1 for d in desempenho if d.get('usou_dica'))
+                    taxa_dicas = (total_dicas / total_perguntas * 100) if total_perguntas > 0 else 0
+
+                    nivel_map = {1: "Fácil", 2: "Médio", 3: "Difícil"}
+                    nivel_desbloqueado = nivel_map.get(id_nivel, "Fácil")
+
+                    ranking = buscar_ranking(id_nivel, limite=100)
+                    if ranking:
+                        pontos_aluno = dados_aluno.get('melhor_pontuacao', 0)
+                        media_geral = sum(r.get('melhor_pontuacao', 0) for r in ranking) / len(ranking)
+                        comparacao = "Acima da média" if pontos_aluno >= media_geral else "Abaixo da média"
+                else:
+                    comparacao = "Sem dados em modo desafio"
+
+                if hasattr(w, 'lbl_acertos'):
+                    w.lbl_acertos.setText(f"{acertos}")
+
+                if hasattr(w, 'lbl_taxa_acerto'):
+                    w.lbl_taxa_acerto.setText(f"{taxa_acerto:.1f}%")
+
+                if hasattr(w, 'lbl_tempo_medio'):
+                    w.lbl_tempo_medio.setText(f"{tempo_medio:.1f}s")
+
+                if hasattr(w, 'lbl_uso_dicas'):
+                    w.lbl_uso_dicas.setText(f"{taxa_dicas:.1f}%")
+
+                if hasattr(w, 'lbl_nivel_desbloqueado'):
+                    w.lbl_nivel_desbloqueado.setText(f"{nivel_desbloqueado}")
+
+                if hasattr(w, 'lbl_comparacao_media'):
+                    w.lbl_comparacao_media.setText(comparacao)
+
+                if hasattr(w, 'tbl_desempenho') and desempenho:
+                    tabela = w.tbl_desempenho
+                    tabela.setRowCount(0)
+
+                    for idx, item in enumerate(desempenho[-10:]):
+                        tabela.insertRow(idx)
+
+                        enunciado = item.get('enunciado', 'N/A')[:50]
+                        correta = "✓" if item.get('correta') else "✗"
+                        tempo = f"{item.get('tempo_resposta_seg', 0):.1f}s"
+
+                        tabela.setItem(idx, 0, QTableWidgetItem(enunciado))
+                        tabela.setItem(idx, 1, QTableWidgetItem(correta))
+                        tabela.setItem(idx, 2, QTableWidgetItem(tempo))
+
+        except Exception as exc:
+            print(f"[ProfessorController] Erro ao preencher relatório individual: {exc}")
+

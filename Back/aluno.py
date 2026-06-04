@@ -9,10 +9,8 @@ def _get_conn_cursor():
     return conexao, cursor
 
 def email_valido(email):
-    partes = email.split('@')
-    if len(partes) != 2:
-        return False
-    return partes[1].split('.') == ['aluno', 'cps', 'gov', 'br']
+    email = email.strip().lower()
+    return email.endswith('@aluno.cps.gov.br')
 
 class Usuario:
     def __init__(self, data):
@@ -22,6 +20,7 @@ class Usuario:
         self.tipo = data['tipo']
         self.turma = data['turma']
 
+    @staticmethod
     def buscar(email, senha):
         conexao, cursor = _get_conn_cursor()
         try:
@@ -30,45 +29,58 @@ class Usuario:
                 (email, senha)
             )
             return cursor.fetchone()
+        except Exception as e:
+            print(f"[aluno.buscar] Erro ao buscar usuário: {e}")
+            return None
         finally:
             cursor.close()
             conexao.close()
 
+    @staticmethod
     def login(email, senha):
-        if not email_valido(email):
-            return None, "E-mail inválido. Use nome.sobrenome@aluno.cps.gov.br"
-        dados = Usuario.buscar(email, senha)
-        if not dados:
-            return None, "E-mail ou senha incorretos."
-        return Usuario(dados), "ok"
-
-    def cadastrar(nome, email, turma, senha=None):
-        if not email_valido(email):
-            return None, "E-mail inválido. Use nome.sobrenome@aluno.cps.gov.br"
-
- 
-        senha_a_usar = senha if senha else senha_padrao
-
-        conexao, cursor = _get_conn_cursor()
         try:
-            cursor.execute("SELECT id_usuario FROM usuario WHERE email = %s", (email,))
-            if cursor.fetchone():
-                return None, "E-mail já cadastrado."
-            cursor.execute(
-                "INSERT INTO usuario (nome, email, senha_hash, tipo, turma) VALUES (%s, %s, %s, 'aluno', %s)",
-                (nome, email, senha_a_usar, turma)
-            )
-            conexao.commit()
-
-            cursor.execute("SELECT * FROM usuario WHERE email = %s AND senha_hash = %s", (email, senha_a_usar))
-            dados = cursor.fetchone()
+            if not email_valido(email):
+                return None, "E-mail inválido. Use nome.sobrenome@aluno.cps.gov.br"
+            dados = Usuario.buscar(email, senha)
             if not dados:
-                return None, "Erro ao criar usuário."
-            return Usuario(dados), "ok"
-        finally:
-            cursor.close()
-            conexao.close()
+                return None, "E-mail ou senha incorretos."
+            return Usuario(dados), None
+        except Exception as e:
+            print(f"[aluno.login] Erro ao fazer login: {e}")
+            return None, f"Erro ao fazer login: {str(e)}"
 
+    @staticmethod
+    def cadastrar(nome, email, turma, senha=None):
+        try:
+            if not email_valido(email):
+                return None, "E-mail inválido. Use nome.sobrenome@aluno.cps.gov.br"
+
+            senha_a_usar = senha if senha else senha_padrao
+
+            conexao, cursor = _get_conn_cursor()
+            try:
+                cursor.execute("SELECT id_usuario FROM usuario WHERE email = %s", (email,))
+                if cursor.fetchone():
+                    return None, "E-mail já cadastrado."
+                cursor.execute(
+                    "INSERT INTO usuario (nome, email, senha_hash, tipo, turma) VALUES (%s, %s, %s, 'aluno', %s)",
+                    (nome, email, senha_a_usar, turma)
+                )
+                conexao.commit()
+
+                cursor.execute("SELECT * FROM usuario WHERE email = %s AND senha_hash = %s", (email, senha_a_usar))
+                dados = cursor.fetchone()
+                if not dados:
+                    return None, "Erro ao criar usuário."
+                return Usuario(dados), None
+            finally:
+                cursor.close()
+                conexao.close()
+        except Exception as e:
+            print(f"[aluno.cadastrar] Erro ao cadastrar usuário: {e}")
+            return None, f"Erro ao cadastrar: {str(e)}"
+
+    @staticmethod
     def menu():
         opcao = input("1 - Login\n2 - Cadastrar\nOpção: ").strip()
 
