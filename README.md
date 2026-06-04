@@ -2,11 +2,6 @@
 
 # 🧪 QuimicLab
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![PySide6](https://img.shields.io/badge/PySide6-6.6+-green.svg)](https://pypi.org/project/PySide6/)
-[![MySQL](https://img.shields.io/badge/MySQL-5.7+-orange.svg)](https://www.mysql.com/)
-[![License](https://img.shields.io/badge/license-Educational-brightgreen.svg)](#-licença)
-
 **Um jogo educacional gamificado para aprender sobre materiais de laboratório de Química**
 
 [📖 Documentação](#-documentação) • [🚀 Início Rápido](#-como-instalar-e-executar) • [📋 Features](#-funcionalidades) • [👨‍💻 Autores](#-autores)
