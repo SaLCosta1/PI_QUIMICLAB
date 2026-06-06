@@ -143,7 +143,7 @@ def contar_acertos_nivel_aluno(id_usuario: int, id_nivel: int) -> int:
         try:
             cursor.execute(
                 """
-                SELECT COUNT(*) as total
+                SELECT COUNT(DISTINCT r.id_pergunta) as total
                 FROM resposta r
                 JOIN sessao_jogo sj ON r.id_sessao = sj.id_sessao
                 JOIN pergunta p ON r.id_pergunta = p.id_pergunta
@@ -183,6 +183,73 @@ def buscar_ranking_geral(limite: int = 10) -> list[dict]:
             cursor.close()
             conexao.close()
     except Exception:
+        return []
+
+
+def buscar_ranking_alunos(turma: str | None = None, limite: int = 200) -> list[dict]:
+    """
+    Ranking de alunos pela melhor pontuação no modo Desafio.
+    Inclui todos os alunos (quem nunca jogou aparece com 0).
+    Se `turma` for informada (e != "Todas"), filtra por ela.
+    Retorna: id_usuario, nome, turma, pontuacao.
+    """
+    try:
+        conexao, cursor = backend_jogo._get_conn_cursor()
+        try:
+            base = """
+                SELECT u.id_usuario, u.nome, u.turma,
+                       COALESCE(SUM(r.melhor_pontuacao), 0) AS pontuacao
+                FROM usuario u
+                LEFT JOIN ranking r ON r.id_usuario = u.id_usuario
+                WHERE u.tipo = 'aluno'{filtro}
+                GROUP BY u.id_usuario, u.nome, u.turma
+                ORDER BY pontuacao DESC, u.nome
+                LIMIT %s
+            """
+            if turma and turma != "Todas":
+                cursor.execute(base.format(filtro=" AND u.turma = %s"), (turma, limite))
+            else:
+                cursor.execute(base.format(filtro=""), (limite,))
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+            conexao.close()
+    except Exception as e:
+        print(f"[jogo_service] Erro ao buscar ranking de alunos: {e}")
+        return []
+
+
+def buscar_ranking_turmas() -> list[dict]:
+    """
+    Ranking de turmas pela pontuação MÉDIA (Desafio) dos seus alunos.
+    Retorna: turma, media, n_alunos.
+    """
+    try:
+        conexao, cursor = backend_jogo._get_conn_cursor()
+        try:
+            cursor.execute(
+                """
+                SELECT pts.turma,
+                       ROUND(AVG(pts.pontuacao), 1) AS media,
+                       COUNT(*) AS n_alunos
+                FROM (
+                    SELECT u.id_usuario, u.turma,
+                           COALESCE(SUM(r.melhor_pontuacao), 0) AS pontuacao
+                    FROM usuario u
+                    LEFT JOIN ranking r ON r.id_usuario = u.id_usuario
+                    WHERE u.tipo = 'aluno' AND u.turma IS NOT NULL AND u.turma <> ''
+                    GROUP BY u.id_usuario, u.turma
+                ) pts
+                GROUP BY pts.turma
+                ORDER BY media DESC, pts.turma
+                """
+            )
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+            conexao.close()
+    except Exception as e:
+        print(f"[jogo_service] Erro ao buscar ranking de turmas: {e}")
         return []
 
 

@@ -66,6 +66,13 @@ class EditorController:
             container,
             sufixo="_2"
         )
+        self._marcadores_2 = self._criar_marcadores_corretas(
+            [(self._altA_2, "A"), (self._altB_2, "B"),
+             (self._altC_2, "C"), (self._altD_2, "D")],
+            container,
+            self._marcar_alt_correta_edicao,
+        )
+        self._atualizar_visual_alt_correta_edicao()
         for widget in (
             w.lbl_pergunta_2,
             w.lbl_infonivel_2,
@@ -135,6 +142,13 @@ class EditorController:
         self._altD_3.setPlaceholderText(
             "Alternativa D"
         )
+        self._marcadores_3 = self._criar_marcadores_corretas(
+            [(self._altA_3, "A"), (self._altB_3, "B"),
+             (self._altC_3, "C"), (self._altD_3, "D")],
+            container,
+            self._marcar_alt_correta_adicao,
+        )
+        self._marcar_alt_correta_adicao("A")
         for widget in (
             w.lbl_pergunta_3,
             w.lbl_infonivel_3,
@@ -393,6 +407,44 @@ class EditorController:
         self._imagem_mime_3 = None
         if hasattr(self.window, 'lbl_imagem_3'):
             self.window.lbl_imagem_3.setPixmap(QPixmap())
+        self._marcar_alt_correta_adicao("A")
+
+    def _criar_marcadores_corretas(self, alt_edits, parent, callback):
+        """Cria um botão 'Correta' no canto direito de cada alternativa.
+
+        Clicar marca aquela alternativa como a correta (fica verde). O campo de
+        texto é encolhido para abrir espaço para o botão.
+        """
+        marcadores = {}
+        larg_btn = 150
+        for edit, letra in alt_edits:
+            g = edit.geometry()
+            edit.setGeometry(g.x(), g.y(), max(g.width() - larg_btn - 10, 50), g.height())
+            btn = QPushButton("Correta", parent)
+            btn.setGeometry(g.x() + g.width() - larg_btn, g.y(), larg_btn, g.height())
+            btn.setCheckable(True)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.clicked.connect(lambda _checked=False, l=letra: callback(l))
+            btn.show()
+            marcadores[letra] = btn
+        return marcadores
+
+    def _atualizar_marcadores(self, marcadores, letra_correta):
+        """Reflete visualmente qual alternativa está marcada como correta."""
+        ativo = """
+            QPushButton { background-color: #4caf50; color: white;
+                border: none; border-radius: 10px; font-size: 16px; font-weight: bold; }
+        """
+        inativo = """
+            QPushButton { background-color: white; color: #921913;
+                border: 2px solid #921913; border-radius: 10px; font-size: 16px; }
+            QPushButton:hover { background-color: #f0f0f0; }
+        """
+        for letra, btn in marcadores.items():
+            sel = (letra == letra_correta)
+            btn.setChecked(sel)
+            btn.setText("✓ Correta" if sel else "Correta")
+            btn.setStyleSheet(ativo if sel else inativo)
 
     def _marcar_alt_correta_edicao(self, letra):
         """Marca uma alternativa como correta na tela de edição."""
@@ -437,6 +489,7 @@ class EditorController:
                 edit.setStyleSheet(style_correta)
             else:
                 edit.setStyleSheet(style_normal)
+        self._atualizar_marcadores(getattr(self, "_marcadores_2", {}), self._alt_correta_2)
 
     def _atualizar_visual_alt_correta_adicao(self):
         """Atualiza visual dos botões de alternativa (adição)."""
@@ -471,3 +524,4 @@ class EditorController:
                 edit.setStyleSheet(style_correta)
             else:
                 edit.setStyleSheet(style_normal)
+        self._atualizar_marcadores(getattr(self, "_marcadores_3", {}), self._alt_correta_3)

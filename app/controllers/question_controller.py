@@ -19,6 +19,10 @@ from app.utils.imagem_util import pixmap_de_blob, aplicar_pixmap_no_label
 
 TEMPO_POR_QUESTAO = 120
 
+# Pontos por acerto no modo Desafio, conforme o nível da pergunta
+# (ver coluna `pontuacao_desafio` da tabela `nivel`): Fácil=100, Médio=200, Difícil=300.
+PONTOS_DESAFIO = {1: 100, 2: 200, 3: 300}
+
 _STYLE_ALT = """
 QPushButton{
     background-color: white;
@@ -55,7 +59,7 @@ class QuestionController:
         self._timer = QTimer()
         self._tempo_restante = TEMPO_POR_QUESTAO
         w.btn_voltar_tipojogo.clicked.connect(
-            lambda: ir(w.pg_loginaluno)
+            self._voltar_para_perfil
         )
         w.btn_tradicional.clicked.connect(
             lambda: self._escolher_modo("tradicional")
@@ -129,8 +133,9 @@ class QuestionController:
         self._ajuda_usada = False
         self._sessao_id = None
         try:
-            # Em desafio, carrega perguntas do nível específico (começando do 1), não de todos
-            dificuldade_carregar = str(self._id_nivel) if dificuldade == "desafio" else dificuldade
+            # Em desafio, carrega perguntas de TODOS os níveis (variado);
+            # no tradicional, carrega apenas o nível escolhido.
+            dificuldade_carregar = "desafio" if dificuldade == "desafio" else dificuldade
             self._perguntas = carregar_perguntas(dificuldade_carregar)
         except Exception as exc:
             print(f"[QuestionController] Erro ao carregar perguntas: {exc}")
@@ -166,8 +171,11 @@ class QuestionController:
         w.txt_dica.hide()
         w.txt_dica.clear()
         w.lbl_pergunta.setText(pergunta.enunciado)
-        nome_nivel = NIVEL_NOME.get(pergunta.id_nivel, str(pergunta.id_nivel))
-        w.lbl_infonivel.setText(f"Nível {nome_nivel}")
+        if self._modo == "desafio":
+            w.lbl_infonivel.setText("Desafio")
+        else:
+            nome_nivel = NIVEL_NOME.get(pergunta.id_nivel, str(pergunta.id_nivel))
+            w.lbl_infonivel.setText(f"Nível {nome_nivel}")
         self._exibir_imagem_pergunta(pergunta)
         alternativas = pergunta.alternativas
         textos = [
@@ -226,6 +234,32 @@ class QuestionController:
             else alternativa.correta in (1, True)
         )
         self._timer.stop()
+        if correta:
+            # Pontos do acerto: no Desafio valem conforme o nível da pergunta
+            # (Fácil=100, Médio=200, Difícil=300); fora do Desafio, 10 por acerto.
+            pontos = PONTOS_DESAFIO.get(pergunta.id_nivel, 100) if self._modo == "desafio" else 10
+            # Dica ou eliminação no Desafio reduz a pontuação da pergunta pela metade
+            # (ex.: Difícil 300 com dica = 150). Errar continua valendo 0.
+            if self._modo == "desafio" and self._ajuda_usada:
+                pontos = pontos // 2
+            # Só pontua se ainda não tinha acertado esta pergunta nesta sessão.
+            # A verificação roda ANTES de gravar a resposta (registro mais abaixo),
+            # senão enxergaria a própria resposta atual e zeraria a pontuação.
+            ja_pontuou = False
+            if self._sessao_id:
+                try:
+                    from app.services.jogo_service import ja_acertou_pergunta_nesta_sessao
+                    id_pergunta = pergunta.id_pergunta if hasattr(pergunta, 'id_pergunta') else pergunta.get('id_pergunta')
+                    ja_pontuou = ja_acertou_pergunta_nesta_sessao(self._sessao_id, id_pergunta)
+                except Exception as e:
+                    print(f"[QuestionController] Erro ao verificar pergunta: {e}")
+                    ja_pontuou = False
+            if not ja_pontuou:
+                self._pontuacao += pontos
+            self._acertos += 1
+        # Grava a resposta DEPOIS de pontuar: se gravarmos antes, a verificação de
+        # "já acertou nesta sessão" (acima) enxerga a própria resposta recém-inserida
+        # e a pontuação fica sempre zerada.
         try:
             registrar_resposta(
                 self._sessao_id,
@@ -236,29 +270,6 @@ class QuestionController:
             )
         except Exception as exc:
             print(f"[QuestionController] Erro ao registrar resposta: {exc}")
-        if correta:
-            # Verifica se o aluno já acertou essa pergunta NESTA SESSÃO
-            # Se sim, não adiciona pontos novamente (evita duplicação na mesma sessão)
-            if self._sessao_id:
-                try:
-                    from app.services.jogo_service import ja_acertou_pergunta_nesta_sessao
-                    id_pergunta = pergunta.id_pergunta if hasattr(pergunta, 'id_pergunta') else pergunta.get('id_pergunta')
-                    
-                    if ja_acertou_pergunta_nesta_sessao(self._sessao_id, id_pergunta):
-                        # Já acertou NESTA SESSÃO, não adiciona pontos
-                        print(f"[QuestionController] Pergunta {id_pergunta} já foi acertada nesta sessão, sem pontos")
-                    else:
-                        # Primeira vez acertando nesta sessão, adiciona pontos
-                        self._pontuacao += 10
-                except Exception as e:
-                    print(f"[QuestionController] Erro ao verificar pergunta: {e}")
-                    # Em caso de erro, adiciona pontos por segurança
-                    self._pontuacao += 10
-            else:
-                # Sem sessão ID, adiciona pontos normalmente
-                self._pontuacao += 10
-            
-            self._acertos += 1
         alt_id = (
             alternativa["id_alternativa"]
             if isinstance(alternativa, dict)
@@ -370,7 +381,7 @@ class QuestionController:
             w.lbl_acertos.setText(f"{self._acertos}/{total}")
             self.main.ir_para(w.pg_feedbacktradicional)
         else:
-            w.lbl_modo_2.setText(f"Nível {nivel_nome}")
+            w.lbl_modo_2.setText("Desafio")
             w.lbl_acertos_2.setText(f"{self._acertos}/{total}\n{self._pontuacao} pts")
             self.main.ir_para(w.pg_feedbackdesafio)
 
@@ -379,7 +390,7 @@ class QuestionController:
         w.comboBox_escolherpergunta_2.blockSignals(True)
         w.comboBox_escolherpergunta_2.clear()
         for i in range(len(self._perguntas)):
-            w.comboBox_escolherpergunta_2.addItem(f"Questão {i + 1}/{len(self._perguntas)}")
+            w.comboBox_escolherpergunta_2.addItem(f"Questão {i + 1}")
         w.comboBox_escolherpergunta_2.blockSignals(False)
         w.comboBox_escolherpergunta_2.setCurrentIndex(0)
         self._mostrar_gabarito_questao(0)
@@ -392,9 +403,25 @@ class QuestionController:
         pergunta = self._perguntas[index]
         resposta = self._respostas[index] if index < len(self._respostas) else {}
         try:
+            # Barra superior vira título do gabarito
             if hasattr(w, "lbl_titulo_gabarito_3"):
-                enunciado_curto = pergunta.enunciado[:120]
-                w.lbl_titulo_gabarito_3.setText(f"Q{index + 1}: {enunciado_curto}...")
+                w.lbl_titulo_gabarito_3.setText(
+                    f"Gabarito — Questão {index + 1}/{len(self._perguntas)}"
+                )
+            # Enunciado + alternativas no card da esquerda (lista_enunciadopergunta_2)
+            if hasattr(w, "lista_enunciadopergunta_2"):
+                lista = w.lista_enunciadopergunta_2
+                lista.setWordWrap(True)
+                lista.clear()
+                lista.addItem(pergunta.enunciado)
+                letras = ["A", "B", "C", "D"]
+                for i, alt in enumerate(pergunta.alternativas):
+                    texto = (
+                        alt.get("texto", "") if isinstance(alt, dict)
+                        else getattr(alt, "texto", "")
+                    )
+                    if i < len(letras):
+                        lista.addItem(f"{letras[i]}) {texto}")
         except Exception as exc:
             print(f"[QuestionController] Erro ao exibir enunciado: {exc}")
         nivel_nome = NIVEL_NOME.get(pergunta.id_nivel, str(pergunta.id_nivel))
@@ -452,6 +479,12 @@ class QuestionController:
 
     def _voltar_ao_inicio_pos_jogo(self):
         self.main.ir_para(self.main.window.pg_tipo_jogo)
+
+    def _voltar_para_perfil(self):
+        # Sai da área do aluno direto para a escolha aluno/professor,
+        # sem retraçar a tela de login.
+        self.main.usuario_logado = None
+        self.main.ir_para(self.main.window.pg_perfil)
 
     def _aviso(self, texto):
         QMessageBox.warning(

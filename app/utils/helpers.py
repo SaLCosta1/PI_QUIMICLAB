@@ -82,6 +82,84 @@ def configurar_tabela(tabela):
         QAbstractItemView.ScrollMode.ScrollPerPixel
     )
 
+    # Estilo padrão (tema vermelho/branco) das tabelas
+    tabela.setStyleSheet("""
+        QTableWidget {
+            background-color: white;
+            alternate-background-color: #f7eeed;
+            border: 2px solid #921913;
+            border-radius: 12px;
+            gridline-color: #e6d2d0;
+            font-size: 18px;
+        }
+        QTableWidget::item {
+            padding: 6px;
+            color: #333333;
+        }
+        QTableWidget::item:selected {
+            background-color: #f0cfcc;
+            color: #921913;
+        }
+        QHeaderView::section {
+            background-color: #921913;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            border: none;
+            padding: 8px;
+        }
+    """)
+
+
+def estilo_valor(label):
+    """
+    Destaca o VALOR de uma estatística nos relatórios: texto grande, em
+    negrito, centralizado, no tema vermelho/branco. Deixa os números das
+    caixas ("acertos", "média", etc.) com bem mais destaque.
+    """
+    label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    label.setWordWrap(True)
+    label.setStyleSheet("""
+        QLabel {
+            background-color: white;
+            border: 2px solid #921913;
+            border-radius: 16px;
+            color: #921913;
+            font-size: 28px;
+            font-weight: bold;
+            padding: 4px 12px;
+        }
+    """)
+
+
+def configurar_lista(lista):
+    """
+    Aplica o estilo padrão (tema vermelho/branco) a um QListWidget.
+    Usado nas telas de relatório para deixá-las mais agradáveis.
+    """
+    lista.setStyleSheet("""
+        QListWidget {
+            background-color: white;
+            border: 2px solid #921913;
+            border-radius: 12px;
+            font-size: 18px;
+            padding: 6px;
+        }
+        QListWidget::item {
+            padding: 10px;
+            border-bottom: 1px solid #f0e2e1;
+            color: #333333;
+        }
+        QListWidget::item:selected {
+            background-color: #921913;
+            color: white;
+            border-radius: 8px;
+        }
+        QListWidget::item:hover {
+            background-color: #f3d9d7;
+        }
+    """)
+
 
 # =========================================================
 # CRIA ITEM PADRONIZADO PARA TABELA

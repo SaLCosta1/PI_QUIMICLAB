@@ -1,4 +1,6 @@
-from PySide6.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QMessageBox, QLineEdit, QPushButton
+from PySide6.QtCore import Qt, QSize, QRectF
+from PySide6.QtGui import QIcon, QPixmap, QPainter, QPen, QColor
 
 from app.services.auth_service import (
     login_aluno,
@@ -90,6 +92,15 @@ class AuthController:
         barra.valueChanged.connect(
             self._verificar_scroll_termos
         )
+
+        # Mascara as senhas (•••) e adiciona o botão de olho mostrar/ocultar
+        for _campo in (
+            'input_senhaaluno', 'input_senhaprof',
+            'input_senha_cadastroaluno',
+            'input_senhaaluno_2', 'input_senhaaluno_3',
+        ):
+            if hasattr(w, _campo):
+                self._configurar_senha(getattr(w, _campo))
 
     def _aceitar_termos(self):
         w = self.main.window
@@ -213,6 +224,66 @@ class AuthController:
         w.input_loginaluno_3.clear()
         w.input_senhaaluno_3.clear()
         self.main.ir_para(w.pg_loginprof)
+
+    def _icone_olho(self, aberto, cor="#921913", tam=30):
+        """Desenha um ícone simples de olho (sem emoji): aberto = contorno + pupila;
+        fechado = contorno com um traço diagonal (senha oculta)."""
+        pix = QPixmap(tam, tam)
+        pix.fill(Qt.GlobalColor.transparent)
+        p = QPainter(pix)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        caneta = QPen(QColor(cor))
+        caneta.setWidth(2)
+        p.setPen(caneta)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        # contorno do olho
+        p.drawEllipse(QRectF(3, tam * 0.30, tam - 6, tam * 0.40))
+        if aberto:
+            p.setBrush(QColor(cor))
+            r = tam * 0.11
+            p.drawEllipse(QRectF(tam / 2 - r, tam / 2 - r, 2 * r, 2 * r))
+        else:
+            p.drawLine(5, tam - 5, tam - 5, 5)
+        p.end()
+        return QIcon(pix)
+
+    def _configurar_senha(self, campo):
+        """
+        Mascara a senha (•••) e cria um botão de 'olho' (ícone simples, sem emoji)
+        no canto direito do campo para mostrar/ocultar o texto digitado.
+        """
+        campo.setEchoMode(QLineEdit.EchoMode.Password)
+
+        parent = campo.parentWidget()
+        if parent is None:
+            return
+
+        g = campo.geometry()
+        tam = min(max(g.height() - 16, 24), 44)
+        btn = QPushButton(parent)
+        btn.setGeometry(
+            g.x() + g.width() - tam - 12,
+            g.y() + (g.height() - tam) // 2,
+            tam,
+            tam,
+        )
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.setStyleSheet("QPushButton { border: none; background: transparent; }")
+        btn.setIconSize(QSize(tam - 6, tam - 6))
+        btn.setIcon(self._icone_olho(False))  # senha oculta -> olho fechado
+        # Abre espaço à direita para o texto não passar por baixo do olho
+        campo.setTextMargins(0, 0, tam + 16, 0)
+
+        def alternar():
+            if campo.echoMode() == QLineEdit.EchoMode.Password:
+                campo.setEchoMode(QLineEdit.EchoMode.Normal)
+                btn.setIcon(self._icone_olho(True))
+            else:
+                campo.setEchoMode(QLineEdit.EchoMode.Password)
+                btn.setIcon(self._icone_olho(False))
+
+        btn.clicked.connect(alternar)
+        btn.show()
 
     def _verificar_scroll_termos(self):
         w = self.main.window

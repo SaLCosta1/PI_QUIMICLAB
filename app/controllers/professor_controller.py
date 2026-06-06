@@ -9,6 +9,8 @@ from PySide6.QtCore import Qt
 
 from app.utils.helpers import (
     configurar_tabela,
+    configurar_lista,
+    estilo_valor,
     criar_item_tabela,
 )
 
@@ -103,7 +105,7 @@ class ProfessorController:
         )
 
         w.btn_relatorioalunos.clicked.connect(
-            lambda: self._abrir_relatorio_individual()
+            lambda: self._abrir_relatorio_geral()
         )
 
         w.btn_voltarareaprof2_2.clicked.connect(
@@ -123,15 +125,12 @@ class ProfessorController:
         )
 
         w.btn_verificar.clicked.connect(
-            self._abrir_relatorio_individual
+            self._mostrar_aluno_geral
         )
-
-        w.lista_alunos3.itemClicked.connect(
-            self._abrir_relatorio_individual
-        )
+        w.btn_verificar.hide()
 
         w.lista_alunos2.itemClicked.connect(
-            self._abrir_relatorio_individual
+            self._mostrar_aluno_geral
         )
 
         w.comboBox_turma2.currentIndexChanged.connect(
@@ -162,65 +161,19 @@ class ProfessorController:
             self._filtrar_ranking_geral
         )
 
-        if hasattr(w, 'btn_voltarpararanking2_8'):
-            w.btn_voltarpararanking2_8.clicked.connect(
-                lambda: self._adicionar_coluna(
-                    w.tbl_rankinggeral
-                )
-            )
-
-        if hasattr(w, 'btn_voltarpararanking2_9'):
-            w.btn_voltarpararanking2_9.clicked.connect(
-                lambda: self._remover_coluna(
-                    w.tbl_rankinggeral
-                )
-            )
-
-        if hasattr(w, 'btn_voltarpararanking2_10'):
-            w.btn_voltarpararanking2_10.clicked.connect(
-                lambda: self._adicionar_linha(
-                    w.tbl_rankinggeral
-                )
-            )
-
-        if hasattr(w, 'btn_voltarpararanking2_11'):
-            w.btn_voltarpararanking2_11.clicked.connect(
-                lambda: self._remover_linha(
-                    w.tbl_rankinggeral
-                )
-            )
-
         w.btn_voltarpararanking2_3.clicked.connect(
             lambda: ir(w.pg_ranking_nav)
         )
 
-        if hasattr(w, 'btn_voltarpararanking2_12'):
-            w.btn_voltarpararanking2_12.clicked.connect(
-                lambda: self._adicionar_coluna(
-                    w.tabela_rankingturmas
-                )
-            )
-
-        if hasattr(w, 'btn_voltarpararanking2_13'):
-            w.btn_voltarpararanking2_13.clicked.connect(
-                lambda: self._remover_coluna(
-                    w.tabela_rankingturmas
-                )
-            )
-
-        if hasattr(w, 'btn_voltarpararanking2_14'):
-            w.btn_voltarpararanking2_14.clicked.connect(
-                lambda: self._adicionar_linha(
-                    w.tabela_rankingturmas
-                )
-            )
-
-        if hasattr(w, 'btn_voltarpararanking2_15'):
-            w.btn_voltarpararanking2_15.clicked.connect(
-                lambda: self._remover_linha(
-                    w.tabela_rankingturmas
-                )
-            )
+        # Botões inúteis de adicionar/remover linha/coluna (resíduo): escondidos.
+        for _nome in (
+            'btn_voltarpararanking2_8', 'btn_voltarpararanking2_9',
+            'btn_voltarpararanking2_10', 'btn_voltarpararanking2_11',
+            'btn_voltarpararanking2_12', 'btn_voltarpararanking2_13',
+            'btn_voltarpararanking2_14', 'btn_voltarpararanking2_15',
+        ):
+            if hasattr(w, _nome):
+                getattr(w, _nome).hide()
 
         w.btn_voltarpararanking_5.clicked.connect(
             lambda: ir(w.pg_relatoriogeral)
@@ -228,6 +181,20 @@ class ProfessorController:
 
         configurar_tabela(w.tbl_rankinggeral)
         configurar_tabela(w.tabela_rankingturmas)
+
+        for _lst in (
+            'lista_alunos2', 'lista_alunos3',
+            'lista_perguntascommenosacerto', 'lista_alunos3_2',
+        ):
+            if hasattr(w, _lst):
+                configurar_lista(getattr(w, _lst))
+
+        for _val in (
+            'lbl_acertos2', 'lbl_comparacaomedia', 'lbl_mediaturma',
+            'lbl_mediaturma2', 'lbl_menornota', 'lbl_maiornota',
+        ):
+            if hasattr(w, _val):
+                estilo_valor(getattr(w, _val))
 
     def _abrir_editar_perguntas(self):
 
@@ -268,8 +235,9 @@ class ProfessorController:
         )
 
     def _sair_prof(self):
+        # Sai da área do professor direto para a escolha aluno/professor.
         self.main.usuario_logado = None
-        self.main.ir_para(self.main.window.pg_loginprof)
+        self.main.ir_para(self.main.window.pg_perfil)
 
     def _abrir_relatorio_geral(self):
 
@@ -296,10 +264,65 @@ class ProfessorController:
                 w.comboBox_modo2.blockSignals(False)
                 w.comboBox_modo2.setCurrentIndex(0)
 
+            self._limpar_painel_aluno_geral()
+            self._filtrar_relatorio_geral()
             self.main.ir_para(w.pg_relatoriogeral)
 
         except Exception as exc:
             print(f"[ProfessorController] Erro ao abrir relatório geral: {exc}")
+
+    def _limpar_painel_aluno_geral(self):
+        w = self.main.window
+        for attr in ('lbl_acertos2', 'lbl_comparacaomedia', 'lbl_mediaturma'):
+            if hasattr(w, attr):
+                getattr(w, attr).setText('-')
+
+    def _mostrar_aluno_geral(self, *args):
+        """
+        Preenche o painel direito da pg_relatoriogeral com o desempenho do aluno
+        selecionado na lista_alunos2, no nível escolhido — sem trocar de tela.
+        """
+        from app.services.jogo_service import (
+            contar_acertos_nivel_aluno,
+            buscar_alunos_por_turma,
+        )
+
+        w = self.main.window
+
+        if not hasattr(w, 'lista_alunos2') or not w.lista_alunos2.currentItem():
+            QMessageBox.warning(w, 'Atenção', 'Selecione um aluno para ver o relatório.')
+            return
+
+        item = w.lista_alunos2.currentItem()
+        aluno = item.data(1000)
+        id_nivel = item.data(1001) or 1
+        if not aluno:
+            return
+
+        id_usuario = aluno.get('id_usuario')
+        turma = aluno.get('turma')
+
+        acertos = contar_acertos_nivel_aluno(id_usuario, id_nivel)
+
+        # Média da turma no mesmo nível (perguntas distintas acertadas)
+        media = 0.0
+        if turma:
+            colegas = buscar_alunos_por_turma(turma)
+            valores = [contar_acertos_nivel_aluno(c.get('id_usuario'), id_nivel) for c in colegas]
+            if valores:
+                media = sum(valores) / len(valores)
+
+        if hasattr(w, 'lbl_acertos2'):
+            w.lbl_acertos2.setText(str(acertos))
+        if hasattr(w, 'lbl_mediaturma'):
+            w.lbl_mediaturma.setText(f"{media:.1f}")
+        if hasattr(w, 'lbl_comparacaomedia'):
+            if acertos > media:
+                w.lbl_comparacaomedia.setText("Acima da média")
+            elif acertos < media:
+                w.lbl_comparacaomedia.setText("Abaixo da média")
+            else:
+                w.lbl_comparacaomedia.setText("Na média")
 
     def _abrir_relatorio_turmas(self):
         try:
@@ -377,32 +400,44 @@ class ProfessorController:
 
     def _abrir_ranking_turmas(self):
         try:
-            w = self.main.window
-
-            if hasattr(w, 'comboBox_turmas_2'):
-                w.comboBox_turmas_2.blockSignals(True)
-                w.comboBox_turmas_2.clear()
-                turmas_conhecidas = ["1A", "1B", "1C", "2A", "2B", "2C", "3A", "3B", "3C"]
-                for turma in turmas_conhecidas:
-                    w.comboBox_turmas_2.addItem(turma)
-                w.comboBox_turmas_2.blockSignals(False)
-                w.comboBox_turmas_2.setCurrentIndex(0)
-
-            self.main.ir_para(w.pg_rankingturmas)
-
+            self._preencher_ranking_turmas()
+            self.main.ir_para(self.main.window.pg_rankingturmas)
         except Exception as exc:
             print(f"[ProfessorController] Erro ao abrir ranking de turmas: {exc}")
+
+    def _preencher_ranking_turmas(self):
+        from app.services.jogo_service import buscar_ranking_turmas
+
+        w = self.main.window
+        if not hasattr(w, 'tabela_rankingturmas'):
+            return
+
+        dados = buscar_ranking_turmas()
+        tabela = w.tabela_rankingturmas
+        tabela.setColumnCount(4)
+        tabela.setHorizontalHeaderLabels(
+            ["Posição", "Turma", "Pontuação média", "Nº de alunos"]
+        )
+        tabela.horizontalHeader().setVisible(True)
+        tabela.setRowCount(0)
+        for idx, t in enumerate(dados):
+            tabela.insertRow(idx)
+            tabela.setItem(idx, 0, criar_item_tabela(idx + 1))
+            tabela.setItem(idx, 1, criar_item_tabela(t.get('turma') or '-'))
+            tabela.setItem(idx, 2, criar_item_tabela(t.get('media', 0)))
+            tabela.setItem(idx, 3, criar_item_tabela(t.get('n_alunos', 0)))
 
     def _abrir_ranking_geral(self):
         try:
             w = self.main.window
 
+            from app.services.jogo_service import buscar_turmas
+
             if hasattr(w, 'comboBox_turmas'):
                 w.comboBox_turmas.blockSignals(True)
                 w.comboBox_turmas.clear()
                 w.comboBox_turmas.addItem("Todas")
-                turmas_conhecidas = ["1A", "1B", "1C", "2A", "2B", "2C", "3A", "3B", "3C"]
-                for turma in turmas_conhecidas:
+                for turma in buscar_turmas():
                     w.comboBox_turmas.addItem(turma)
                 w.comboBox_turmas.blockSignals(False)
                 w.comboBox_turmas.setCurrentIndex(0)
@@ -526,26 +561,6 @@ class ProfessorController:
 
         self._mostrar_botoes_acao()
 
-    def _adicionar_coluna(self, tabela):
-        if tabela is None:
-            return
-        tabela.insertColumn(tabela.columnCount())
-
-    def _remover_coluna(self, tabela):
-        if tabela is None or tabela.columnCount() == 0:
-            return
-        tabela.removeColumn(tabela.columnCount() - 1)
-
-    def _adicionar_linha(self, tabela):
-        if tabela is None:
-            return
-        tabela.insertRow(tabela.rowCount())
-
-    def _remover_linha(self, tabela):
-        if tabela is None or tabela.rowCount() == 0:
-            return
-        tabela.removeRow(tabela.rowCount() - 1)
-
     def _esconder_botoes_exclusao(self):
 
         w = self.main.window
@@ -601,7 +616,7 @@ class ProfessorController:
 
     def _filtrar_relatorio_geral(self):
         try:
-            from app.services.jogo_service import buscar_alunos_por_turma, buscar_ranking
+            from app.services.jogo_service import buscar_alunos_por_turma, contar_acertos_nivel_aluno
 
             w = self.main.window
 
@@ -613,9 +628,8 @@ class ProfessorController:
 
             alunos = buscar_alunos_por_turma(turma_selecionada if turma_selecionada != "Todas" else None)
 
-            ranking_dados = buscar_ranking(id_nivel, limite=500)
-
-            pontuacoes = {r.get('id_usuario'): r.get('melhor_pontuacao', 0) for r in ranking_dados}
+            # Ao refiltrar (mudou turma/nível), limpa o painel de detalhe do aluno
+            self._limpar_painel_aluno_geral()
 
             if hasattr(w, 'lista_alunos2'):
                 w.lista_alunos2.clear()
@@ -624,9 +638,9 @@ class ProfessorController:
                     id_aluno = aluno.get('id_usuario')
                     nome = aluno.get('nome', 'N/A')
                     turma = aluno.get('turma', 'N/A')
-                    pontos = pontuacoes.get(id_aluno, 0)
+                    acertos = contar_acertos_nivel_aluno(id_aluno, id_nivel)
 
-                    texto = f"{nome} (Turma: {turma}) - {pontos} pts"
+                    texto = f"{nome} (Turma: {turma}) - {acertos} acertos"
                     item = QListWidgetItem(texto)
                     item.setData(1000, aluno)
                     item.setData(1001, id_nivel)
@@ -646,22 +660,22 @@ class ProfessorController:
 
             nivel_map = {"Fácil": 1, "Médio": 2, "Difícil": 3}
             id_nivel = nivel_map.get(nivel_texto, 1)
-            
+
             alunos = buscar_alunos_por_turma(turma_selecionada if turma_selecionada != "Todas" and turma_selecionada else None)
-            
+
             # Lista para armazenar acertos de cada aluno (para calcular média)
             acertos_lista = []
-            
+
             if hasattr(w, 'lista_alunos3'):
                 w.lista_alunos3.clear()
                 for aluno in alunos:
                     id_aluno = aluno.get('id_usuario')
                     nome = aluno.get('nome', 'N/A')
                     turma = aluno.get('turma', 'N/A')
-                    
+
                     acertos = contar_acertos_nivel_aluno(id_aluno, id_nivel)
                     acertos_lista.append(acertos)
-                    
+
                     texto = f"{nome} (Turma: {turma}) - {acertos} acertos"
                     item = QListWidgetItem(texto)
                     item.setData(1000, aluno)
@@ -704,42 +718,28 @@ class ProfessorController:
 
     def _filtrar_ranking_geral(self):
         try:
-            from app.services.jogo_service import buscar_ranking_geral, buscar_desempenho_aluno
+            from app.services.jogo_service import buscar_ranking_alunos
 
             w = self.main.window
 
-            ranking = buscar_ranking_geral(limite=50)
+            turma = w.comboBox_turmas.currentText() if hasattr(w, 'comboBox_turmas') else "Todas"
+            ranking = buscar_ranking_alunos(turma if turma != "Todas" else None)
 
-            if hasattr(w, 'tbl_rankinggeral'):
-                tabela = w.tbl_rankinggeral
-                tabela.setRowCount(0)
-                
-                if not ranking:
-                    print("[ProfessorController] Nenhum dado de ranking encontrado")
-                    return
+            if not hasattr(w, 'tbl_rankinggeral'):
+                return
 
-                for idx, aluno in enumerate(ranking):
-                    tabela.insertRow(idx)
-                    
-                    nome = aluno.get('nome', 'N/A')
-                    turma = aluno.get('turma', 'N/A')
-                    pontos = aluno.get('pontuacao_total', 0)
-                    
-                    id_usuario = aluno.get('id_usuario')
-                    acertos = 0
-                    media = 0
-                    
-                    if id_usuario:
-                        desempenho = buscar_desempenho_aluno(id_usuario)
-                        if desempenho:
-                            acertos = sum(1 for d in desempenho if d.get('correta'))
-                            total = len(desempenho)
-                            media = (acertos / total * 100) if total > 0 else 0
+            tabela = w.tbl_rankinggeral
+            tabela.setColumnCount(4)
+            tabela.setHorizontalHeaderLabels(["Posição", "Aluno", "Turma", "Pontuação"])
+            tabela.horizontalHeader().setVisible(True)
+            tabela.setRowCount(0)
 
-                    tabela.setItem(idx, 0, QTableWidgetItem(str(idx + 1)))
-                    tabela.setItem(idx, 1, QTableWidgetItem(str(acertos)))
-                    tabela.setItem(idx, 2, QTableWidgetItem(str(pontos)))
-                    tabela.setItem(idx, 3, QTableWidgetItem(f"{media:.1f}%"))
+            for idx, aluno in enumerate(ranking):
+                tabela.insertRow(idx)
+                tabela.setItem(idx, 0, criar_item_tabela(idx + 1))
+                tabela.setItem(idx, 1, criar_item_tabela(aluno.get('nome', 'N/A')))
+                tabela.setItem(idx, 2, criar_item_tabela(aluno.get('turma') or '-'))
+                tabela.setItem(idx, 3, criar_item_tabela(aluno.get('pontuacao', 0)))
 
         except Exception as exc:
             print(f"[ProfessorController] Erro ao filtrar ranking geral: {exc}")

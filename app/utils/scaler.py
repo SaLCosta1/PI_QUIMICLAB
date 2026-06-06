@@ -15,12 +15,40 @@
 #
 # =========================================================
 
+import re
+
 from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import QRect
 
 # Tamanho base usado no design da interface
 DESIGN_W = 1920
 DESIGN_H = 1080
+
+
+def _escalar_fonte(child, ff: float):
+    """
+    Escala a fonte do widget pelo fator `ff`, cobrindo os dois jeitos usados
+    no projeto: a propriedade de fonte (pointSize do Qt Designer) e o
+    `font-size: Npx` definido via stylesheet. Sem isso, o texto não acompanha
+    o redimensionamento e "estoura" as caixas em telas diferentes.
+    """
+    if ff <= 0:
+        return
+
+    fonte = child.font()
+    ps = fonte.pointSizeF()
+    if ps > 0:
+        fonte.setPointSizeF(ps * ff)
+        child.setFont(fonte)
+
+    ss = child.styleSheet()
+    if ss and "font-size" in ss:
+        ss = re.sub(
+            r"font-size:\s*(\d+)px",
+            lambda m: f"font-size: {max(1, round(int(m.group(1)) * ff))}px",
+            ss,
+        )
+        child.setStyleSheet(ss)
 
 
 # =========================================================
@@ -44,6 +72,10 @@ def _escalar_widgets(widget: QWidget, fx: float, fy: float):
       fy     → fator de escala vertical
     """
 
+    # Fator de fonte uniforme (usa o menor para o texto nunca ficar maior
+    # que a caixa que o contém quando fx != fy)
+    ff = min(fx, fy)
+
     # Percorre todos os widgets filhos da interface
     for child in widget.findChildren(QWidget):
 
@@ -60,6 +92,9 @@ def _escalar_widgets(widget: QWidget, fx: float, fy: float):
 
         # Aplica nova geometria ao widget
         child.setGeometry(novo)
+
+        # Escala a fonte junto com a geometria
+        _escalar_fonte(child, ff)
 
 
 # =========================================================
