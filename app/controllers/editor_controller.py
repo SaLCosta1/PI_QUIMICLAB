@@ -203,7 +203,8 @@ class EditorController:
                 border-radius: 10px;
                 padding: 6px 10px;
                 font-size: 20px;
-                color: white;
+                color: #921913;
+                font-weight: bold;
             }
 
             QComboBox:focus {
@@ -216,6 +217,13 @@ class EditorController:
 
             QComboBox::down-arrow {
                 image: none;
+            }
+
+            QComboBox QAbstractItemView {
+                background-color: white;
+                color: #921913;
+                selection-background-color: #921913;
+                selection-color: white;
             }
         """)
         combo.show()
@@ -410,11 +418,7 @@ class EditorController:
         self._marcar_alt_correta_adicao("A")
 
     def _criar_marcadores_corretas(self, alt_edits, parent, callback):
-        """Cria um botão 'Correta' no canto direito de cada alternativa.
-
-        Clicar marca aquela alternativa como a correta (fica verde). O campo de
-        texto é encolhido para abrir espaço para o botão.
-        """
+        """Cria um botão 'Correta' à direita de cada alternativa (clicar marca a correta)."""
         marcadores = {}
         larg_btn = 150
         for edit, letra in alt_edits:

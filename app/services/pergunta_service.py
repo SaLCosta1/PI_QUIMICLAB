@@ -45,25 +45,10 @@ def _nivel_para_id(nivel_str: str) -> int:
 
 
 def criar_pergunta(dados: dict, criador_id: int | None = None) -> tuple[bool, str | None]:
+    """Cria pergunta + alternativas + dica. Retorna (True, None) ou (False, erro).
+
+    dados: pergunta, nivel, dica, altA..altD, alt_correta (A-D), imagem_base64, imagem_mime.
     """
-    Cria uma pergunta no banco com alternativas e uma dica (se houver).
-
-    dados esperado: {
-        'pergunta': str,
-        'nivel': str,
-        'dica': str,
-        'altA': str,
-        'altB': str,
-        'altC': str,
-        'altD': str,
-        'alt_correta': str (A, B, C ou D - opcional, padrão: A),
-        'imagem_base64': str (opcional),
-        'imagem_mime': str (opcional),
-    }
-
-    Retorna (True, None) em sucesso ou (False, mensagem_erro).
-    """
-
     enunciado = dados.get("pergunta", "").strip()
     if not enunciado:
         return False, "Enunciado vazio."
@@ -124,11 +109,7 @@ def criar_pergunta(dados: dict, criador_id: int | None = None) -> tuple[bool, st
 
 
 def listar_perguntas(id_nivel: int | None = None) -> list[dict]:
-    """
-    Lista todas as perguntas do banco, opcionalmente filtradas por nível.
-    
-    Retorna lista de dicts com: id_pergunta, enunciado, id_nivel, nome_nivel
-    """
+    """Lista as perguntas ativas (opcionalmente filtradas por nível)."""
     conn = conectar_banco()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -161,16 +142,10 @@ def listar_perguntas(id_nivel: int | None = None) -> list[dict]:
 
 
 def obter_pergunta(id_pergunta: int) -> dict | None:
-    """
-    Obtém os detalhes completos de uma pergunta (com alternativas e dicas).
-    
-    Retorna dict com: id_pergunta, enunciado, id_nivel, alternativas[], dicas[]
-    ou None se não encontrar.
-    """
+    """Obtém uma pergunta completa (enunciado, imagem, alternativas e dicas) ou None."""
     conn = conectar_banco()
     cursor = conn.cursor(dictionary=True)
     try:
-        # Buscar pergunta
         cursor.execute(
             """
             SELECT p.id_pergunta, p.enunciado, p.id_nivel, p.imagem, p.imagem_mime,
@@ -212,25 +187,10 @@ def obter_pergunta(id_pergunta: int) -> dict | None:
 
 
 def atualizar_pergunta(id_pergunta: int, dados: dict) -> tuple[bool, str | None]:
+    """Atualiza pergunta + alternativas + dica. Mesmo formato de `dados` de criar_pergunta.
+
+    Retorna (True, None) ou (False, erro).
     """
-    Atualiza uma pergunta existente com alternativas e dica.
-
-    dados esperado: {
-        'pergunta': str,
-        'nivel': str,
-        'dica': str,
-        'altA': str,
-        'altB': str,
-        'altC': str,
-        'altD': str,
-        'alt_correta': str (A, B, C ou D - opcional, padrão: A),
-        'imagem_base64': str (opcional),
-        'imagem_mime': str (opcional),
-    }
-
-    Retorna (True, None) em sucesso ou (False, mensagem_erro).
-    """
-
     enunciado = dados.get("pergunta", "").strip()
     if not enunciado:
         return False, "Enunciado vazio."
@@ -321,12 +281,7 @@ def atualizar_pergunta(id_pergunta: int, dados: dict) -> tuple[bool, str | None]
 
 
 def deletar_pergunta(id_pergunta: int) -> tuple[bool, str | None]:
-    """
-    Marca uma pergunta como inativa (exclusão lógica).
-
-    Retorna (True, None) em sucesso ou (False, mensagem_erro).
-    """
-
+    """Exclusão lógica: marca a pergunta como inativa. Retorna (True, None) ou (False, erro)."""
     conn = conectar_banco()
     cursor = conn.cursor()
     try:

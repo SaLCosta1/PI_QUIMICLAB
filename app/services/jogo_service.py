@@ -1,4 +1,9 @@
+import math
+
 from Back import Jogo as backend_jogo
+
+# Porcentagem de acerto exigida no nível para desbloquear o próximo.
+PERCENTUAL_DESBLOQUEIO = 60
 
 NIVEL = {"facil": 1, "medio": 2, "dificil": 3}
 
@@ -6,12 +11,7 @@ NIVEL_NOME = {1: "Fácil", 2: "Médio", 3: "Difícil"}
 
 
 def carregar_perguntas(dificuldade: str) -> list:
-    """
-    Busca perguntas do banco por dificuldade.
-
-    dificuldade: facil | medio | dificil | aleatorio | milhao | 1 | 2 | 3
-    Retorna lista de Back.Perguntas.Pergunta ou [] em caso de erro.
-    """
+    """Busca perguntas do banco por dificuldade (facil/medio/dificil/aleatorio/milhao/desafio)."""
     try:
         # Aceita tanto nomes quanto números de nível
         nivel_map = {"1": "facil", "2": "medio", "3": "dificil"}
@@ -79,10 +79,7 @@ def atualizar_ranking(id_usuario: int, id_nivel: int, pontuacao: int):
 
 
 def buscar_ranking(id_nivel: int, limite: int = 10) -> list[dict]:
-    """
-    Busca ranking para um nível específico.
-    Retorna alunos com pontuação APENAS do modo DESAFIO.
-    """
+    """Ranking de um nível (pontuação só do modo Desafio)."""
     try:
         conexao, cursor = backend_jogo._get_conn_cursor()
         try:
@@ -106,10 +103,7 @@ def buscar_ranking(id_nivel: int, limite: int = 10) -> list[dict]:
 
 
 def ja_acertou_pergunta_nesta_sessao(id_sessao: int, id_pergunta: int) -> bool:
-    """
-    Verifica se o aluno já acertou uma pergunta específica NESTA SESSÃO.
-    Retorna True se já acertou nesta mesma sessão, False caso contrário.
-    """
+    """Diz se o aluno já acertou essa pergunta nesta mesma sessão (evita pontuar duas vezes)."""
     try:
         conexao, cursor = backend_jogo._get_conn_cursor()
         try:
@@ -134,10 +128,7 @@ def ja_acertou_pergunta_nesta_sessao(id_sessao: int, id_pergunta: int) -> bool:
 
 
 def contar_acertos_nivel_aluno(id_usuario: int, id_nivel: int) -> int:
-    """
-    Conta quantas respostas CORRETAS um aluno tem em um nível específico.
-    Conta TODAS as tentativas, independente do modo.
-    """
+    """Conta perguntas distintas que o aluno acertou num nível (qualquer modo)."""
     try:
         conexao, cursor = backend_jogo._get_conn_cursor()
         try:
@@ -187,12 +178,7 @@ def buscar_ranking_geral(limite: int = 10) -> list[dict]:
 
 
 def buscar_ranking_alunos(turma: str | None = None, limite: int = 200) -> list[dict]:
-    """
-    Ranking de alunos pela melhor pontuação no modo Desafio.
-    Inclui todos os alunos (quem nunca jogou aparece com 0).
-    Se `turma` for informada (e != "Todas"), filtra por ela.
-    Retorna: id_usuario, nome, turma, pontuacao.
-    """
+    """Ranking de alunos por pontuação de Desafio (inclui quem nunca jogou com 0; filtra por turma)."""
     try:
         conexao, cursor = backend_jogo._get_conn_cursor()
         try:
@@ -220,10 +206,7 @@ def buscar_ranking_alunos(turma: str | None = None, limite: int = 200) -> list[d
 
 
 def buscar_ranking_turmas() -> list[dict]:
-    """
-    Ranking de turmas pela pontuação MÉDIA (Desafio) dos seus alunos.
-    Retorna: turma, media, n_alunos.
-    """
+    """Ranking de turmas pela pontuação média (Desafio) dos seus alunos."""
     try:
         conexao, cursor = backend_jogo._get_conn_cursor()
         try:
@@ -267,9 +250,7 @@ def buscar_desempenho_geral() -> list[dict]:
 
 
 def buscar_desempenho_aluno(id_usuario: int) -> list[dict]:
-    """
-    Busca desempenho do aluno apenas do modo DESAFIO (professor).
-    """
+    """Busca as respostas do aluno só no modo Desafio (usado nos relatórios do professor)."""
     try:
         conexao, cursor = backend_jogo._get_conn_cursor()
         try:
@@ -314,9 +295,7 @@ def filtrar_por_turma(ranking_alunos: list[dict], turma: str) -> list[dict]:
 
 
 def buscar_turmas() -> list[str]:
-    """
-    Busca todas as turmas cadastradas no banco.
-    """
+    """Lista todas as turmas cadastradas (sem repetição, ordenadas)."""
     try:
         conexao, cursor = backend_jogo._get_conn_cursor()
         try:
@@ -333,10 +312,7 @@ def buscar_turmas() -> list[str]:
 
 
 def buscar_alunos_por_turma(turma: str = None) -> list[dict]:
-    """
-    Busca alunos de uma turma específica.
-    Se turma for None, busca todos os alunos.
-    """
+    """Lista alunos de uma turma (ou todos, se turma for None)."""
     try:
         conexao, cursor = backend_jogo._get_conn_cursor()
         try:
@@ -358,71 +334,60 @@ def buscar_alunos_por_turma(turma: str = None) -> list[dict]:
         return []
 
 
-def contar_acertos_nivel(id_usuario: int, id_nivel: int) -> int:
-    """
-    Conta o total de acertos de um usuário em um nível específico.
-    Apenas conta acertos do modo DESAFIO para permitir que professores
-    avaliem o desempenho real.
-    """
+def contar_perguntas_nivel(id_nivel: int) -> int:
+    """Conta quantas perguntas ativas existem num nível."""
     try:
         conexao, cursor = backend_jogo._get_conn_cursor()
         try:
-            query = """
-            SELECT COUNT(*) as total
-            FROM resposta r
-            JOIN sessao_jogo sj ON r.id_sessao = sj.id_sessao
-            JOIN pergunta p ON r.id_pergunta = p.id_pergunta
-            WHERE sj.id_usuario = %s
-            AND p.id_nivel = %s
-            AND r.correta = 1
-            AND sj.modo = 'desafio'
-            """
-            cursor.execute(query, (id_usuario, id_nivel))
+            cursor.execute(
+                "SELECT COUNT(*) AS total FROM pergunta WHERE id_nivel = %s AND ativa = 1",
+                (id_nivel,),
+            )
             resultado = cursor.fetchone()
             return resultado.get('total', 0) if resultado else 0
         finally:
             cursor.close()
             conexao.close()
     except Exception as e:
-        print(f"[jogo_service] Erro ao contar acertos: {e}")
+        print(f"[jogo_service] Erro ao contar perguntas do nível: {e}")
         return 0
 
 
 def verificar_desbloqueio_nivel(id_usuario: int, id_nivel_atual: int) -> dict:
-    """
-    Verifica se o usuário desbloqueou o próximo nível.
-    Requer 10 acertos no nível atual.
-    
-    Retorna:
-    {
-        'desbloqueado': bool,
-        'acertos_necessarios': 10,
-        'acertos_atuais': int,
-        'proximo_nivel': int ou None,
-        'mensagem': str
-    }
-    """
+    """Verifica se o aluno desbloqueou o próximo nível (precisa acertar 60% das perguntas do nível)."""
     try:
-        acertos_atuais = contar_acertos_nivel(id_usuario, id_nivel_atual)
-        acertos_necessarios = 10
-        
-        # Verificar se é o último nível
+        total_perguntas = contar_perguntas_nivel(id_nivel_atual)
+        acertos_atuais = contar_acertos_nivel_aluno(id_usuario, id_nivel_atual)
+        # Quantos acertos representam os 60% (arredondando para cima).
+        acertos_necessarios = math.ceil(total_perguntas * PERCENTUAL_DESBLOQUEIO / 100)
+
         proximo_nivel = id_nivel_atual + 1
         if proximo_nivel > 3:
             proximo_nivel = None
-        
-        desbloqueado = acertos_atuais >= acertos_necessarios
-        
+
+        # Nível sem perguntas cadastradas não tem o que bloquear.
+        if total_perguntas == 0:
+            desbloqueado = True
+        else:
+            desbloqueado = acertos_atuais >= acertos_necessarios
+
         if desbloqueado and proximo_nivel:
             mensagem = f"Parabéns! Você desbloqueou o nível {proximo_nivel}!"
         elif proximo_nivel:
-            faltam = acertos_necessarios - acertos_atuais
-            mensagem = f"Você precisa de {faltam} acerto(s) a mais para desbloquear o próximo nível."
+            faltam = max(acertos_necessarios - acertos_atuais, 0)
+            mensagem = (
+                f"Você acertou {acertos_atuais} de {total_perguntas} perguntas. "
+                f"São necessários {PERCENTUAL_DESBLOQUEIO}% "
+                f"({acertos_necessarios} acertos) para desbloquear o próximo nível "
+                f"— faltam {faltam}."
+            )
         else:
             mensagem = "Você completou todos os níveis!"
-        
+
         return {
             'desbloqueado': desbloqueado,
+            'percentual_exigido': PERCENTUAL_DESBLOQUEIO,
+            'total_perguntas': total_perguntas,
             'acertos_necessarios': acertos_necessarios,
             'acertos_atuais': acertos_atuais,
             'proximo_nivel': proximo_nivel,
@@ -432,7 +397,9 @@ def verificar_desbloqueio_nivel(id_usuario: int, id_nivel_atual: int) -> dict:
         print(f"[jogo_service] Erro ao verificar desbloqueio: {e}")
         return {
             'desbloqueado': False,
-            'acertos_necessarios': 10,
+            'percentual_exigido': PERCENTUAL_DESBLOQUEIO,
+            'total_perguntas': 0,
+            'acertos_necessarios': 0,
             'acertos_atuais': 0,
             'proximo_nivel': None,
             'mensagem': 'Erro ao verificar desbloqueio.'

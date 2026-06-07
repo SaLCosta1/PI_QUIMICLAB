@@ -1,13 +1,5 @@
-# =========================================================
-# RankingController
-# =========================================================
-# A navegação e o preenchimento das telas de ranking (alunos e turmas)
-# são tratados pelo ProfessorController.
-#
-# Esta classe foi esvaziada de propósito: antes ela continha apenas
-# manipulação genérica de tabela (adicionar/remover linha e coluna),
-# que não fazia parte do produto e poluía a interface.
-# =========================================================
+# A navegação e o preenchimento das telas de ranking são feitos pelo ProfessorController.
+# Esta classe ficou vazia de propósito (antes tinha só manipulação genérica de tabela, removida).
 
 
 class RankingController:

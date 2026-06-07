@@ -34,6 +34,12 @@ QPushButton{
 QPushButton:hover{
     background-color: #f0f0f0;
 }
+
+QPushButton:disabled{
+    background-color: #e0e0e0;
+    border: 2px solid #b0b0b0;
+    color: #9a9a9a;
+}
 """
 
 class QuestionController:

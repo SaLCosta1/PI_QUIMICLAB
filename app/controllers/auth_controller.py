@@ -226,8 +226,7 @@ class AuthController:
         self.main.ir_para(w.pg_loginprof)
 
     def _icone_olho(self, aberto, cor="#921913", tam=30):
-        """Desenha um ícone simples de olho (sem emoji): aberto = contorno + pupila;
-        fechado = contorno com um traço diagonal (senha oculta)."""
+        """Desenha o ícone de olho: aberto = contorno + pupila; fechado = contorno + traço diagonal."""
         pix = QPixmap(tam, tam)
         pix.fill(Qt.GlobalColor.transparent)
         p = QPainter(pix)
@@ -248,10 +247,7 @@ class AuthController:
         return QIcon(pix)
 
     def _configurar_senha(self, campo):
-        """
-        Mascara a senha (•••) e cria um botão de 'olho' (ícone simples, sem emoji)
-        no canto direito do campo para mostrar/ocultar o texto digitado.
-        """
+        """Mascara a senha (•••) e adiciona um botão de olho para mostrar/ocultar o texto."""
         campo.setEchoMode(QLineEdit.EchoMode.Password)
 
         parent = campo.parentWidget()

@@ -278,10 +278,7 @@ class ProfessorController:
                 getattr(w, attr).setText('-')
 
     def _mostrar_aluno_geral(self, *args):
-        """
-        Preenche o painel direito da pg_relatoriogeral com o desempenho do aluno
-        selecionado na lista_alunos2, no nível escolhido — sem trocar de tela.
-        """
+        """Preenche o painel de desempenho do aluno selecionado, sem trocar de tela."""
         from app.services.jogo_service import (
             contar_acertos_nivel_aluno,
             buscar_alunos_por_turma,
@@ -745,10 +742,7 @@ class ProfessorController:
             print(f"[ProfessorController] Erro ao filtrar ranking geral: {exc}")
 
     def _preencher_relatorio_individual(self, dados_aluno):
-        """
-        Preenche a tela de relatório individual com dados do aluno selecionado.
-        Mostra desempenho em modo DESAFIO apenas.
-        """
+        """Preenche o relatório individual do aluno (desempenho só no modo Desafio)."""
         try:
             from app.services.jogo_service import buscar_desempenho_aluno, buscar_ranking
 
