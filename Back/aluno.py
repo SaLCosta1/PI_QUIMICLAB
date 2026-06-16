@@ -10,7 +10,7 @@ def _get_conn_cursor():
 
 def email_valido(email):
     email = email.strip().lower()
-    return email.endswith('@aluno.cps.gov.br')
+    return email.endswith('@aluno.cps.sp.gov.br')
 
 class Usuario:
     def __init__(self, data):
@@ -40,7 +40,7 @@ class Usuario:
     def login(email, senha):
         try:
             if not email_valido(email):
-                return None, "E-mail inválido. Use nome.sobrenome@aluno.cps.gov.br"
+                return None, "E-mail inválido. Use nome.sobrenome@aluno.cps.sp.gov.br"
             dados = Usuario.buscar(email, senha)
             if not dados:
                 return None, "E-mail ou senha incorretos."
@@ -53,7 +53,7 @@ class Usuario:
     def cadastrar(nome, email, turma, senha=None):
         try:
             if not email_valido(email):
-                return None, "E-mail inválido. Use nome.sobrenome@aluno.cps.gov.br"
+                return None, "E-mail inválido. Use nome.sobrenome@aluno.cps.sp.gov.br"
 
             senha_a_usar = senha if senha else senha_padrao
 
@@ -79,6 +79,32 @@ class Usuario:
         except Exception as e:
             print(f"[aluno.cadastrar] Erro ao cadastrar usuário: {e}")
             return None, f"Erro ao cadastrar: {str(e)}"
+
+    @staticmethod
+    def atualizar_senha(email, nova_senha):
+        try:
+            email = email.strip().lower()
+            if not email_valido(email):
+                return False, "E-mail inválido. Use nome.sobrenome@aluno.cps.sp.gov.br"
+            if not nova_senha:
+                return False, "Informe a nova senha."
+
+            conexao, cursor = _get_conn_cursor()
+            try:
+                cursor.execute(
+                    "UPDATE usuario SET senha_hash = %s WHERE email = %s AND tipo = 'aluno'",
+                    (nova_senha, email),
+                )
+                conexao.commit()
+                if cursor.rowcount == 0:
+                    return False, "Nenhum aluno encontrado com esse e-mail."
+                return True, None
+            finally:
+                cursor.close()
+                conexao.close()
+        except Exception as e:
+            print(f"[aluno.atualizar_senha] Erro ao atualizar senha: {e}")
+            return False, f"Erro ao atualizar senha: {str(e)}"
 
     @staticmethod
     def menu():

@@ -24,10 +24,10 @@ def _blob_para_base64(imagem, mime: str | None = None) -> str | None:
     return None
 
 
-def _nivel_para_id(nivel_str: str) -> int:
-    if not nivel_str:
+def _nivel_para_id(nivel_str) -> int:
+    if nivel_str is None or nivel_str == "":
         return 1
-    s = nivel_str.strip().lower()
+    s = str(nivel_str).strip().lower()
     if s in ("1", "facil", "fácil"):
         return 1
     if s in ("2", "medio", "médio"):
@@ -260,15 +260,38 @@ def atualizar_pergunta(id_pergunta: int, dados: dict) -> tuple[bool, str | None]
                     (id_pergunta, texto, imagem, None, correta),
                 )
 
-        # Atualizar dica (deletar e recriar é seguro para dicas)
-        cursor.execute("DELETE FROM dica WHERE id_pergunta = %s", (id_pergunta,))
-        
+        # Atualizar dica SEM deletar a linha: se um aluno já usou a dica, existe
+        # um registro em uso_dica apontando para id_dica (FK fk_uso_dica_ref), e o
+        # DELETE quebraria com erro 1451. Então atualizamos a dica existente no lugar.
+        cursor.execute(
+            "SELECT id_dica FROM dica WHERE id_pergunta = %s ORDER BY id_dica",
+            (id_pergunta,),
+        )
+        ids_dica = [row[0] for row in cursor.fetchall()]
+
         dica = dados.get("dica", "").strip()
         if dica:
-            cursor.execute(
-                "INSERT INTO dica (id_pergunta, tipo, conteudo, penalizacao_pontos) VALUES (%s, %s, %s, %s)",
-                (id_pergunta, 'texto', dica, 0),
-            )
+            if ids_dica:
+                # Reaproveita a primeira dica (mantém id_dica e a FK de uso_dica).
+                cursor.execute(
+                    "UPDATE dica SET tipo = %s, conteudo = %s, penalizacao_pontos = %s WHERE id_dica = %s",
+                    ('texto', dica, 0, ids_dica[0]),
+                )
+                extras = ids_dica[1:]
+            else:
+                cursor.execute(
+                    "INSERT INTO dica (id_pergunta, tipo, conteudo, penalizacao_pontos) VALUES (%s, %s, %s, %s)",
+                    (id_pergunta, 'texto', dica, 0),
+                )
+                extras = []
+        else:
+            extras = ids_dica
+
+        # Remove dicas sobrando apenas se nenhum aluno as tiver usado (FK segura).
+        for id_dica in extras:
+            cursor.execute("SELECT 1 FROM uso_dica WHERE id_dica = %s LIMIT 1", (id_dica,))
+            if cursor.fetchone() is None:
+                cursor.execute("DELETE FROM dica WHERE id_dica = %s", (id_dica,))
 
         conn.commit()
         return True, None

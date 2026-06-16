@@ -11,11 +11,11 @@ def _formatar_nome(email: str) -> str:
 
 
 def _email_valido_aluno(email: str) -> bool:
-    # Aluno: nome.sobrenome@aluno.cps.gov.br
+    # Aluno: nome.sobrenome@aluno.cps.sp.gov.br
     partes = email.split("@")
     if len(partes) != 2:
         return False
-    return partes[1].split(".") == ["aluno", "cps", "gov", "br"]
+    return partes[1].split(".") == ["aluno", "cps", "sp", "gov", "br"]
 
 
 def _email_valido_prof(email: str) -> bool:
@@ -89,8 +89,11 @@ def cadastrar_prof(nome: str, email: str):
     }, None
 
 
-def trocar_senha(id_usuario: int, senha_atual: str, nova_senha: str):
-    """Troca de senha (apenas valida campos vazios; persistência ainda não implementada)."""
-    if not senha_atual or not nova_senha:
-        return False, "Preencha todos os campos."
-    return True, None
+def trocar_senha_aluno(email: str, nova_senha: str):
+    """Persiste a nova senha do aluno. Retorna (True, None) ou (False, erro)."""
+    return BackAluno.atualizar_senha(email, nova_senha)
+
+
+def trocar_senha_prof(email: str, nova_senha: str):
+    """Persiste a nova senha do professor. Retorna (True, None) ou (False, erro)."""
+    return BackProfessor.atualizar_senha(email, nova_senha)

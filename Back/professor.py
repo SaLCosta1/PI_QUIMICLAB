@@ -72,3 +72,29 @@ class Professor:
         except Exception as e:
             print(f"[professor.cadastrar] Erro ao cadastrar professor: {e}")
             return None, f"Erro ao cadastrar: {str(e)}"
+
+    @staticmethod
+    def atualizar_senha(email, nova_senha):
+        try:
+            email = email.strip().lower()
+            if not email_valido(email):
+                return False, "E-mail inválido. Use nome.sobrenome@cps.sp.gov.br"
+            if not nova_senha:
+                return False, "Informe a nova senha."
+
+            conexao, cursor = _get_conn_cursor()
+            try:
+                cursor.execute(
+                    "UPDATE usuario SET senha_hash = %s WHERE email = %s AND tipo = 'professor'",
+                    (nova_senha, email),
+                )
+                conexao.commit()
+                if cursor.rowcount == 0:
+                    return False, "Nenhum professor encontrado com esse e-mail."
+                return True, None
+            finally:
+                cursor.close()
+                conexao.close()
+        except Exception as e:
+            print(f"[professor.atualizar_senha] Erro ao atualizar senha: {e}")
+            return False, f"Erro ao atualizar senha: {str(e)}"

@@ -33,7 +33,7 @@ class ProfessorController:
         )
 
         w.btn_relatoriogeral.clicked.connect(
-            lambda: self._abrir_relatorio_geral()
+            lambda: ir(w.pg_ranking)
         )
 
         w.btn_ranking.clicked.connect(
@@ -104,10 +104,6 @@ class ProfessorController:
             lambda: self._abrir_relatorio_turmas()
         )
 
-        w.btn_relatorioalunos.clicked.connect(
-            lambda: self._abrir_relatorio_geral()
-        )
-
         w.btn_voltarareaprof2_2.clicked.connect(
             lambda: ir(w.pg_areaprof)
         )
@@ -120,27 +116,6 @@ class ProfessorController:
             lambda: self._abrir_ranking_geral()
         )
 
-        w.btn_voltarpararanking_2.clicked.connect(
-            lambda: ir(w.pg_ranking)
-        )
-
-        w.btn_verificar.clicked.connect(
-            self._mostrar_aluno_geral
-        )
-        w.btn_verificar.hide()
-
-        w.lista_alunos2.itemClicked.connect(
-            self._mostrar_aluno_geral
-        )
-
-        w.comboBox_turma2.currentIndexChanged.connect(
-            self._filtrar_relatorio_geral
-        )
-
-        w.comboBox_modo2.currentIndexChanged.connect(
-            self._filtrar_relatorio_geral
-        )
-
         w.btn_voltarpararanking.clicked.connect(
             lambda: ir(w.pg_ranking)
         )
@@ -151,6 +126,11 @@ class ProfessorController:
 
         w.comboBox_modo2_2.currentIndexChanged.connect(
             self._filtrar_relatorio_turmas
+        )
+
+        # Ao clicar num aluno da lista, o painel troca da visão "turma" para "aluno".
+        w.lista_alunos3.itemClicked.connect(
+            self._mostrar_aluno_turma
         )
 
         w.btn_voltarpararanking2.clicked.connect(
@@ -176,22 +156,22 @@ class ProfessorController:
                 getattr(w, _nome).hide()
 
         w.btn_voltarpararanking_5.clicked.connect(
-            lambda: ir(w.pg_relatoriogeral)
+            lambda: ir(w.pg_ranking)
         )
 
         configurar_tabela(w.tbl_rankinggeral)
         configurar_tabela(w.tabela_rankingturmas)
 
         for _lst in (
-            'lista_alunos2', 'lista_alunos3',
+            'lista_alunos3',
             'lista_perguntascommenosacerto', 'lista_alunos3_2',
         ):
             if hasattr(w, _lst):
                 configurar_lista(getattr(w, _lst))
 
         for _val in (
-            'lbl_acertos2', 'lbl_comparacaomedia', 'lbl_mediaturma',
             'lbl_mediaturma2', 'lbl_menornota', 'lbl_maiornota',
+            'lbl_acertos_aluno', 'lbl_comparacao_aluno', 'lbl_mediaturma_aluno',
         ):
             if hasattr(w, _val):
                 estilo_valor(getattr(w, _val))
@@ -239,58 +219,43 @@ class ProfessorController:
         self.main.usuario_logado = None
         self.main.ir_para(self.main.window.pg_perfil)
 
-    def _abrir_relatorio_geral(self):
+    # Widgets do painel direito da tela de turmas, separados por visão.
+    _WIDGETS_TURMA = (
+        'lbl_dado1c_relatorio', 'lbl_mediaturma2',
+        'lbl_dado2c_relatorio', 'lbl_menornota',
+        'lbl_rodape2_relatorio', 'lbl_maiornota',
+        'lbl_dado3c_relatorio', 'lista_perguntascommenosacerto',
+    )
+    _WIDGETS_ALUNO = (
+        'lbl_alunoview_titulo',
+        'lbl_alunoview_h1', 'lbl_acertos_aluno',
+        'lbl_alunoview_h2', 'lbl_comparacao_aluno',
+        'lbl_alunoview_h3', 'lbl_mediaturma_aluno',
+    )
 
-        try:
-            from app.services.jogo_service import buscar_turmas
-
-            w = self.main.window
-
-            turmas = buscar_turmas()
-
-            if hasattr(w, 'comboBox_turma2'):
-                w.comboBox_turma2.blockSignals(True)
-                w.comboBox_turma2.clear()
-                w.comboBox_turma2.addItem("Todas")
-                for turma in turmas:
-                    w.comboBox_turma2.addItem(turma)
-                w.comboBox_turma2.blockSignals(False)
-                w.comboBox_turma2.setCurrentIndex(0)
-
-            if hasattr(w, 'comboBox_modo2'):
-                w.comboBox_modo2.blockSignals(True)
-                w.comboBox_modo2.clear()
-                w.comboBox_modo2.addItems(["Fácil", "Médio", "Difícil"])
-                w.comboBox_modo2.blockSignals(False)
-                w.comboBox_modo2.setCurrentIndex(0)
-
-            self._limpar_painel_aluno_geral()
-            self._filtrar_relatorio_geral()
-            self.main.ir_para(w.pg_relatoriogeral)
-
-        except Exception as exc:
-            print(f"[ProfessorController] Erro ao abrir relatório geral: {exc}")
-
-    def _limpar_painel_aluno_geral(self):
+    def _mostrar_grupo(self, nomes, visivel):
         w = self.main.window
-        for attr in ('lbl_acertos2', 'lbl_comparacaomedia', 'lbl_mediaturma'):
-            if hasattr(w, attr):
-                getattr(w, attr).setText('-')
+        for n in nomes:
+            if hasattr(w, n):
+                getattr(w, n).setVisible(visivel)
 
-    def _mostrar_aluno_geral(self, *args):
-        """Preenche o painel de desempenho do aluno selecionado, sem trocar de tela."""
+    def _ver_painel_turma(self):
+        """Volta o painel da direita para a visão da turma."""
+        self._mostrar_grupo(self._WIDGETS_ALUNO, False)
+        self._mostrar_grupo(self._WIDGETS_TURMA, True)
+
+    def _mostrar_aluno_turma(self, *args):
+        """Troca o painel da direita para os dados do aluno clicado na lista."""
         from app.services.jogo_service import (
             contar_acertos_nivel_aluno,
             buscar_alunos_por_turma,
         )
 
         w = self.main.window
-
-        if not hasattr(w, 'lista_alunos2') or not w.lista_alunos2.currentItem():
-            QMessageBox.warning(w, 'Atenção', 'Selecione um aluno para ver o relatório.')
+        item = w.lista_alunos3.currentItem() if hasattr(w, 'lista_alunos3') else None
+        if not item:
             return
 
-        item = w.lista_alunos2.currentItem()
         aluno = item.data(1000)
         id_nivel = item.data(1001) or 1
         if not aluno:
@@ -298,6 +263,7 @@ class ProfessorController:
 
         id_usuario = aluno.get('id_usuario')
         turma = aluno.get('turma')
+        nome = aluno.get('nome', 'N/A')
 
         acertos = contar_acertos_nivel_aluno(id_usuario, id_nivel)
 
@@ -309,17 +275,23 @@ class ProfessorController:
             if valores:
                 media = sum(valores) / len(valores)
 
-        if hasattr(w, 'lbl_acertos2'):
-            w.lbl_acertos2.setText(str(acertos))
-        if hasattr(w, 'lbl_mediaturma'):
-            w.lbl_mediaturma.setText(f"{media:.1f}")
-        if hasattr(w, 'lbl_comparacaomedia'):
+        if hasattr(w, 'lbl_alunoview_titulo'):
+            w.lbl_alunoview_titulo.setText(f"Aluno: {nome}")
+        if hasattr(w, 'lbl_acertos_aluno'):
+            w.lbl_acertos_aluno.setText(str(acertos))
+        if hasattr(w, 'lbl_mediaturma_aluno'):
+            w.lbl_mediaturma_aluno.setText(f"{media:.1f}")
+        if hasattr(w, 'lbl_comparacao_aluno'):
             if acertos > media:
-                w.lbl_comparacaomedia.setText("Acima da média")
+                w.lbl_comparacao_aluno.setText("Acima da média")
             elif acertos < media:
-                w.lbl_comparacaomedia.setText("Abaixo da média")
+                w.lbl_comparacao_aluno.setText("Abaixo da média")
             else:
-                w.lbl_comparacaomedia.setText("Na média")
+                w.lbl_comparacao_aluno.setText("Na média")
+
+        # Troca a visão: esconde os cards da turma, mostra os do aluno.
+        self._mostrar_grupo(self._WIDGETS_TURMA, False)
+        self._mostrar_grupo(self._WIDGETS_ALUNO, True)
 
     def _abrir_relatorio_turmas(self):
         try:
@@ -476,6 +448,8 @@ class ProfessorController:
             w.btn_confirmar_exclusao.setVisible(True)
         if hasattr(w, 'btn_negar_exclusao'):
             w.btn_negar_exclusao.setVisible(True)
+        if hasattr(w, 'lbl_alt1_editarpergunta_3'):
+            w.lbl_alt1_editarpergunta_3.setVisible(True)
 
     def _cancelar_exclusao(self):
 
@@ -490,6 +464,8 @@ class ProfessorController:
             w.btn_confirmar_exclusao.setVisible(False)
         if hasattr(w, 'btn_negar_exclusao'):
             w.btn_negar_exclusao.setVisible(False)
+        if hasattr(w, 'lbl_alt1_editarpergunta_3'):
+            w.lbl_alt1_editarpergunta_3.setVisible(False)
 
     def _excluir_pergunta(self):
 
@@ -571,6 +547,8 @@ class ProfessorController:
             w.btn_confirmar_exclusao.setVisible(False)
         if hasattr(w, 'btn_negar_exclusao'):
             w.btn_negar_exclusao.setVisible(False)
+        if hasattr(w, 'lbl_alt1_editarpergunta_3'):
+            w.lbl_alt1_editarpergunta_3.setVisible(False)
 
     def _mostrar_botoes_acao(self):
         w = self.main.window
@@ -584,6 +562,8 @@ class ProfessorController:
             w.btn_confirmar_exclusao.setVisible(False)
         if hasattr(w, 'btn_negar_exclusao'):
             w.btn_negar_exclusao.setVisible(False)
+        if hasattr(w, 'lbl_alt1_editarpergunta_3'):
+            w.lbl_alt1_editarpergunta_3.setVisible(False)
 
     def _filtrar_detalhe(self):
         w = self.main.window
@@ -611,46 +591,16 @@ class ProfessorController:
 
         self._esconder_botoes_exclusao()
 
-    def _filtrar_relatorio_geral(self):
-        try:
-            from app.services.jogo_service import buscar_alunos_por_turma, contar_acertos_nivel_aluno
-
-            w = self.main.window
-
-            turma_selecionada = w.comboBox_turma2.currentText() if hasattr(w, 'comboBox_turma2') else "Todas"
-            nivel_texto = w.comboBox_modo2.currentText() if hasattr(w, 'comboBox_modo2') else "Fácil"
-
-            nivel_map = {"Fácil": 1, "Médio": 2, "Difícil": 3}
-            id_nivel = nivel_map.get(nivel_texto, 1)
-
-            alunos = buscar_alunos_por_turma(turma_selecionada if turma_selecionada != "Todas" else None)
-
-            # Ao refiltrar (mudou turma/nível), limpa o painel de detalhe do aluno
-            self._limpar_painel_aluno_geral()
-
-            if hasattr(w, 'lista_alunos2'):
-                w.lista_alunos2.clear()
-
-                for aluno in alunos:
-                    id_aluno = aluno.get('id_usuario')
-                    nome = aluno.get('nome', 'N/A')
-                    turma = aluno.get('turma', 'N/A')
-                    acertos = contar_acertos_nivel_aluno(id_aluno, id_nivel)
-
-                    texto = f"{nome} (Turma: {turma}) - {acertos} acertos"
-                    item = QListWidgetItem(texto)
-                    item.setData(1000, aluno)
-                    item.setData(1001, id_nivel)
-                    w.lista_alunos2.addItem(item)
-
-        except Exception as exc:
-            print(f"[ProfessorController] Erro ao filtrar relatório geral: {exc}")
-
     def _filtrar_relatorio_turmas(self):
         try:
             from app.services.jogo_service import buscar_desempenho_geral, buscar_ranking, buscar_alunos_por_turma, contar_acertos_nivel_aluno
 
             w = self.main.window
+
+            # Mudar turma/nível volta o painel para a visão da turma.
+            self._ver_painel_turma()
+            if hasattr(w, 'lista_alunos3'):
+                w.lista_alunos3.clearSelection()
 
             turma_selecionada = w.comboBox_turma3.currentText() if hasattr(w, 'comboBox_turma3') else ""
             nivel_texto = w.comboBox_modo2_2.currentText() if hasattr(w, 'comboBox_modo2_2') else ""

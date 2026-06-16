@@ -7,6 +7,8 @@ from app.services.auth_service import (
     login_prof,
     cadastrar_prof,
     cadastrar_aluno,
+    trocar_senha_aluno,
+    trocar_senha_prof,
 )
 
 class AuthController:
@@ -202,6 +204,10 @@ class AuthController:
                 "Preencha todos os campos."
             )
             return
+        ok, erro = trocar_senha_aluno(login, nova)
+        if not ok:
+            self._aviso(erro or "Não foi possível alterar a senha.")
+            return
         self._info(
             "Senha alterada com sucesso!"
         )
@@ -217,6 +223,10 @@ class AuthController:
             self._aviso(
                 "Preencha todos os campos."
             )
+            return
+        ok, erro = trocar_senha_prof(login, nova)
+        if not ok:
+            self._aviso(erro or "Não foi possível alterar a senha.")
             return
         self._info(
             "Senha alterada com sucesso!"

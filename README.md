@@ -18,7 +18,7 @@ Desenvolvido como Projeto Integrador para a ETEC Júlio de Mesquita.
 - [Pré-requisitos](#pré-requisitos)
 - [Instalação e execução](#instalação-e-execução)
 - [Configuração do banco de dados](#configuração-do-banco-de-dados)
-- [Contas de teste](#contas-de-teste)
+- [Contas](#contas)
 - [Estrutura do projeto](#estrutura-do-projeto)
 - [Arquitetura](#arquitetura)
 - [Banco de dados](#banco-de-dados)
@@ -62,7 +62,8 @@ persistidos em um banco MySQL.
 - Cadastro de perguntas com quatro alternativas, definição da alternativa
   correta, nível de dificuldade, imagem ilustrativa e dica (opcionais).
 - Edição e exclusão (lógica) de perguntas existentes.
-- Relatório de desempenho por aluno e por turma.
+- Relatório de desempenho em tela unificada de turmas e alunos: mostra os dados
+  da turma e, ao selecionar um aluno na lista, alterna para a visão individual.
 - Ranking de alunos e ranking de turmas.
 - Identificação das perguntas com maior índice de erro.
 
@@ -196,22 +197,18 @@ A janela do QuimicLab será aberta em modo maximizado.
 
 ### 1. Criar o schema
 
-O script de criação cria o banco `quimic_lab` e todas as tabelas. A partir do
-terminal:
+O script `Back/diagrama_pi.sql` cria o banco `quimic_lab` e todas as tabelas. A
+partir do terminal:
 
 ```bash
-mysql -u root -p < Back/codigo.sql
+mysql -u root -p < Back/diagrama_pi.sql
 ```
 
 Ou, já conectado ao MySQL:
 
 ```sql
-source Back/codigo.sql;
+source Back/diagrama_pi.sql;
 ```
-
-> O arquivo `Back/diagrama_pi.sql` contém o mesmo schema. Caso o banco tenha
-> sido criado em uma versão anterior (com colunas `imagem_url`), aplique
-> `Back/migracao_imagem_blob.sql` para migrar as imagens para o formato atual.
 
 ### 2. Ajustar as credenciais de conexão
 
@@ -230,39 +227,25 @@ def conectar_banco():
     )
 ```
 
-### 3. (Opcional) Inserir dados de teste
+### 3. Criar as contas iniciais
 
-Para popular o banco com um professor, um aluno e algumas perguntas de exemplo:
-
-```bash
-mysql -u root -p quimic_lab < Back/seed_teste.sql
-```
+O schema é criado vazio (sem dados de exemplo). Crie as contas pela própria
+aplicação, na tela de cadastro de aluno e de professor. As perguntas são
+cadastradas pelo professor dentro do sistema.
 
 ---
 
-## Contas de teste
+## Contas
 
-Disponíveis após executar `Back/seed_teste.sql`:
+Não há script de dados de teste; as contas são criadas pela aplicação
+(tela de cadastro). O cadastro só é aceito com e-mail institucional no formato:
 
-Professor:
-
-```
-E-mail: sabrina.costa@cps.sp.gov.br
-Senha:  senha1234+
-```
-
-Aluno:
-
-```
-E-mail: aluno.teste@aluno.cps.gov.br
-Senha:  senha1234+
-Turma:  3C
-```
-
-Formato dos e-mails institucionais para novos cadastros:
-
-- Aluno: `nome.sobrenome@aluno.cps.gov.br`
+- Aluno: `nome.sobrenome@aluno.cps.sp.gov.br`
 - Professor: `nome.sobrenome@cps.sp.gov.br`
+
+A senha pode ser definida no cadastro e alterada depois pela opção
+"Alterar senha". A validação de domínio é feita em `Back/aluno.py` e
+`Back/professor.py` antes de gravar no banco.
 
 ---
 
@@ -273,7 +256,6 @@ PI_QUIMICLAB/
 ├── main.py                       Ponto de entrada da aplicação
 ├── requirements.txt              Dependências Python
 ├── README.md                     Este arquivo
-├── explicando_tudo.md            Documentação didática do código
 ├── mudancas_claude.md            Registro de alterações
 │
 ├── app/                          Frontend (interface e lógica de tela)
@@ -290,10 +272,9 @@ PI_QUIMICLAB/
 │   │   └── ranking_controller.py
 │   │
 │   ├── services/                 Ponte entre a interface e o backend
-│   │   ├── auth_service.py            Autenticação
+│   │   ├── auth_service.py            Autenticação e troca de senha
 │   │   ├── jogo_service.py            Perguntas, sessões, ranking, desbloqueio
-│   │   ├── pergunta_service.py        CRUD de perguntas
-│   │   └── ranking_service.py
+│   │   └── pergunta_service.py        CRUD de perguntas
 │   │
 │   ├── ui/
 │   │   └── screens/
@@ -307,14 +288,11 @@ PI_QUIMICLAB/
 │
 └── Back/                         Backend (acesso ao banco de dados)
     ├── Conectar_Banco.py         Conexão com o MySQL
-    ├── aluno.py                  Login e cadastro de aluno
-    ├── professor.py              Login e cadastro de professor
+    ├── aluno.py                  Login, cadastro e troca de senha do aluno
+    ├── professor.py              Login, cadastro e troca de senha do professor
     ├── Jogo.py                   Operações de jogo no banco
     ├── Perguntas.py              Classe Pergunta
-    ├── codigo.sql                Schema do banco
-    ├── diagrama_pi.sql           Schema do banco (equivalente)
-    ├── migracao_imagem_blob.sql  Migração de imagens (schema antigo)
-    └── seed_teste.sql            Dados de teste
+    └── diagrama_pi.sql           Schema do banco
 ```
 
 ---
@@ -344,9 +322,6 @@ uma dupla `(resultado, erro)`. Em caso de sucesso, `(dados, None)`; em caso de
 falha, `(None, "mensagem de erro")`. Os controllers verificam o segundo valor
 para decidir se exibem um aviso ou seguem o fluxo.
 
-Para uma explicação detalhada do funcionamento interno, consulte
-[explicando_tudo.md](explicando_tudo.md).
-
 ---
 
 ## Banco de dados
@@ -365,7 +340,7 @@ Principais tabelas do schema `quimic_lab`:
 | `ranking` | Melhores pontuações por aluno e nível |
 | `uso_dica` | Registro de uso de dicas |
 
-O schema completo está em `Back/codigo.sql`.
+O schema completo está em `Back/diagrama_pi.sql`.
 
 ---
 
@@ -398,10 +373,8 @@ diferenças visuais.
 
 ## Documentação adicional
 
-- [explicando_tudo.md](explicando_tudo.md): guia didático do código, voltado a
-  quem está começando no projeto.
 - [mudancas_claude.md](mudancas_claude.md): histórico de alterações.
-- `Back/codigo.sql`: definição completa do banco de dados.
+- `Back/diagrama_pi.sql`: definição completa do banco de dados.
 
 ---
 
@@ -409,8 +382,8 @@ diferenças visuais.
 
 - As senhas são armazenadas em texto simples (a coluna `senha_hash` ainda não
   aplica hash). Não utilize senhas reais.
-- A funcionalidade de troca de senha valida apenas o preenchimento dos campos;
-  a persistência da nova senha ainda não está implementada.
+- A troca de senha persiste a nova senha no banco, mas identifica o usuário
+  apenas pelo e-mail informado, sem exigir a senha atual.
 
 ---
 
