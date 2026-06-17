@@ -1,8 +1,9 @@
 import random
+import textwrap
 from pathlib import Path
 
-from PySide6.QtCore import QTimer, QSize
-from PySide6.QtGui import QIcon
+from PySide6.QtCore import QTimer, QSize, Qt, QRect
+from PySide6.QtGui import QIcon, QFontMetrics
 from PySide6.QtWidgets import QMessageBox
 
 from app.services.jogo_service import (
@@ -22,6 +23,47 @@ TEMPO_POR_QUESTAO = 120
 # Pontos por acerto no modo Desafio, conforme o nível da pergunta
 # (ver coluna `pontuacao_desafio` da tabela `nivel`): Fácil=100, Médio=200, Difícil=300.
 PONTOS_DESAFIO = {1: 100, 2: 200, 3: 300}
+
+def _pt_que_cabe(btn, texto: str, base_pt: float, btn_w: int, btn_h: int,
+                  tamanho_min: float = 7.0) -> float:
+    """Retorna o maior pointSize com que texto cabe dentro de btn_w × btn_h.
+
+    btn_w e btn_h são dimensões FIXAS capturadas uma vez (pós-scaler) para
+    evitar que leituras em tempo-real de btn.width()/height() variem entre
+    perguntas quando setFont() afeta o layout interno do Qt.
+    """
+    if not texto:
+        return base_pt
+    w = max(btn_w - 40, 1)
+    h = max(btn_h - 10, 1)
+    font = btn.font()
+    pt = base_pt
+    while pt > tamanho_min:
+        font.setPointSizeF(pt)
+        fm = QFontMetrics(font)
+        acw = fm.averageCharWidth()
+        chars_per_line = max(10, int(w / acw)) if acw > 0 else 30
+        wrapped = textwrap.fill(texto, width=chars_per_line)
+        if fm.lineSpacing() * (wrapped.count("\n") + 1) <= h:
+            return pt
+        pt -= 1.0
+    return tamanho_min
+
+
+def _aplicar_texto_botao(btn, texto: str, pt: float, btn_w: int) -> None:
+    """Aplica pointSize uniforme e texto quebrado ao botão."""
+    font = btn.font()
+    font.setPointSizeF(pt)
+    btn.setFont(font)
+    if not texto:
+        btn.setText("")
+        return
+    fm = QFontMetrics(font)
+    acw = fm.averageCharWidth()
+    w = max(btn_w - 40, 1)
+    chars_per_line = max(10, int(w / acw)) if acw > 0 else 30
+    btn.setText(textwrap.fill(texto, width=chars_per_line))
+
 
 _STYLE_ALT = """
 QPushButton{
@@ -62,6 +104,11 @@ class QuestionController:
         self._eliminadas = []
         self._dica_visivel = False
         self._ajuda_usada = False
+        # Métricas dos botões de alternativa — inicializadas uma vez, pós-scaler,
+        # para que variações de setFont() não alterem os cálculos entre perguntas.
+        self._alts_base_pt: float | None = None
+        self._alts_w: int = 0
+        self._alts_h: int = 0
         self._timer = QTimer()
         self._tempo_restante = TEMPO_POR_QUESTAO
         w.btn_voltar_tipojogo.clicked.connect(
@@ -188,13 +235,29 @@ class QuestionController:
             a.get("texto", "") if isinstance(a, dict) else getattr(a, "texto", "")
             for a in alternativas
         ]
-        w.btn_altA.setText(textos[0] if len(textos) > 0 else "")
-        w.btn_altB.setText(textos[1] if len(textos) > 1 else "")
-        w.btn_altC.setText(textos[2] if len(textos) > 2 else "")
-        w.btn_altD.setText(textos[3] if len(textos) > 3 else "")
-        for btn in (w.btn_altA, w.btn_altB, w.btn_altC, w.btn_altD):
+        botoes = (w.btn_altA, w.btn_altB, w.btn_altC, w.btn_altD)
+        textos_pad = (textos + ["", "", "", ""])[:4]
+
+        # Aplica estilo primeiro
+        for btn in botoes:
             btn.setEnabled(True)
             btn.setStyleSheet(_STYLE_ALT)
+
+        # Congela base_pt e dimensões na primeira partida (após o scaler rodar).
+        # A partir daí nunca mais lemos btn.width()/height() ou font() do widget,
+        # pois setFont() pode perturbar o layout interno do Qt entre perguntas.
+        if self._alts_base_pt is None:
+            ref = w.btn_altA
+            self._alts_base_pt = float(ref.font().pointSizeF())
+            self._alts_w = ref.width()
+            self._alts_h = ref.height()
+
+        pt_final = min(
+            _pt_que_cabe(btn, t, self._alts_base_pt, self._alts_w, self._alts_h)
+            for btn, t in zip(botoes, textos_pad)
+        )
+        for btn, t in zip(botoes, textos_pad):
+            _aplicar_texto_botao(btn, t, pt_final, self._alts_w)
         w.btn_dicaexp.show()
         w.btn_eliminar.show()
         self._timer.stop()
